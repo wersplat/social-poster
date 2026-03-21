@@ -1,6 +1,7 @@
 {
   "name": "social-publisher",
   "version": "1.0.0",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -8,10 +9,18 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
+    "@hono/node-server": "^1.13.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@supabase/supabase-js": "^2",
+    "dotenv": "^16.6.1",
+    "hono": "^4.6.0",
+    "react": "^18.3.1",
+    "satori": "^0.10.14",
     "twitter-api-v2": "^1"
   },
   "devDependencies": {
+    "@types/react": "^18.3.12",
     "tsx": "^4",
     "typescript": "^5"
   }

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Publisher · Admin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237c6af7'/%3E%3C/svg%3E" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0f0f13;
+    --surface: #18181f;
+    --border:  rgba(255,255,255,0.08);
+    --text:    #e8e8f0;
+    --muted:   #888899;
+    --accent:  #7c6af7;
+    --green:   #22c55e;
+    --amber:   #f59e0b;
+    --red:     #ef4444;
+    --blue:    #3b82f6;
+    --radius:  12px;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif;
+         font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  #login-screen { display: flex; flex-direction: column; align-items: center;
+                  justify-content: center; height: 100vh; gap: 12px; }
+  #login-screen input { background: var(--surface); border: 1px solid var(--border);
+                        color: var(--text); padding: 10px 14px; border-radius: 8px;
+                        font-size: 14px; width: 280px; }
+  #login-screen .btn-primary { width: 100%; justify-content: center; padding: 10px 28px; font-size: 14px; }
+
+  #app { display: none; max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  header h1 { font-size: 18px; font-weight: 500; }
+
+  .tabs { display: flex; gap: 2px; margin-bottom: 24px;
+          border-bottom: 1px solid var(--border); }
+  .tab  { padding: 8px 16px; cursor: pointer; color: var(--muted); font-size: 13px;
+          border-bottom: 2px solid transparent; transition: color .15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer;
+         border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary  { background: var(--accent); color: #fff; }
+  .btn-ghost    { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-amber    { background: var(--amber); color: #000; }
+  .btn-danger   { background: transparent; color: var(--red); border: 1px solid var(--red); }
+  .btn-sm       { padding: 4px 10px; font-size: 12px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+  .card-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px;
+           font-size: 11px; font-weight: 600; letter-spacing: .3px; }
+  .badge-pending    { background: rgba(245,158,11,.15); color: var(--amber); }
+  .badge-processing { background: rgba(59,130,246,.15); color: var(--blue); }
+  .badge-scheduled  { background: rgba(124,106,247,.15); color: var(--accent); }
+  .badge-draft      { background: rgba(136,136,153,.15); color: var(--muted); }
+  .badge-published  { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge-failed     { background: rgba(239,68,68,.15); color: var(--red); }
+
+  .caption-box { background: rgba(255,255,255,.04); border-radius: 8px; padding: 12px;
+                 white-space: pre-wrap; font-size: 13px; margin: 10px 0; color: var(--text); }
+  .caption-box.empty { color: var(--muted); font-style: italic; }
+
+  textarea, input, select {
+    background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 9px 12px; font-size: 13px;
+    font-family: inherit; width: 100%; outline: none; transition: border-color .15s;
+  }
+  textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; line-height: 1.6; }
+
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .error-box { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+               border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--red);
+               font-family: monospace; margin-top: 8px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  label.field { display: flex; flex-direction: column; gap: 5px; }
+  label.field span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+  .char-count { text-align: right; font-size: 11px; color: var(--muted); }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between;
+                padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-info strong { font-size: 13px; font-weight: 500; }
+  .toggle-info small { font-size: 12px; color: var(--muted); }
+
+  .toggle { position: relative; width: 38px; height: 22px; flex-shrink: 0; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: rgba(255,255,255,.1);
+            border-radius: 11px; transition: background .2s; }
+  .slider::before { content:''; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px;
+                    background: #fff; border-radius: 50%; transition: transform .2s; }
+  .toggle input:checked + .slider { background: var(--green); }
+  .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+  .match-label { font-size: 12px; color: var(--muted); }
+  .preview-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 8px 0; }
+  .x-link { font-size: 12px; color: var(--blue); text-decoration: none; }
+  .x-link:hover { text-decoration: underline; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  .empty-state { text-align: center; color: var(--muted); padding: 48px; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <form id="login-form" action="#" method="post" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:320px" autocomplete="on">
+    <h2 style="font-size:16px;font-weight:500">Social Publisher</h2>
+    <!-- Satisfies Chrome a11y hint: password forms should include a username field (can be visually hidden). -->
+    <label class="sr-only" for="login-username">Username</label>
+    <input id="login-username" name="username" type="text" autocomplete="username" value="admin" tabindex="-1" aria-hidden="true"
+      style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
+    <label class="field" style="width:100%;margin:0">
+      <span>Admin secret</span>
+      <input id="secret-input" name="password" type="password" placeholder="Admin secret" autocomplete="current-password" autofocus>
+    </label>
+    <button type="submit" id="login-btn" class="btn btn-primary" style="width:100%">Sign in</button>
+    <p id="login-err" style="color:var(--red);font-size:12px;display:none;text-align:center">Incorrect secret.</p>
+  </form>
+</div>
+
+<div id="app">
+  <header>
+    <h1>Social Publisher</h1>
+    <button type="button" class="btn btn-primary" data-tab="announce">+ New announcement</button>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-tab="queue">Queue</div>
+    <div class="tab" data-tab="history">History</div>
+    <div class="tab" data-tab="announce">Announce</div>
+    <div class="tab" data-tab="policies">Policies</div>
+  </div>
+
+  <div id="pane-queue"    class="pane active"></div>
+  <div id="pane-history"  class="pane"></div>
+  <div id="pane-announce" class="pane"></div>
+  <div id="pane-policies" class="pane"></div>
+</div>
+
+<script>
+let TOKEN = ''
+/** @type {Map<string, object>} */
+const postsById = new Map()
+let activeListPane = 'queue'
+
+async function login() {
+  const secret = document.getElementById('secret-input').value.trim()
+  const res = await fetch('/api/posts?mode=queue', {
+    headers: { Authorization: `Bearer ${secret}` }
+  })
+  if (res.status === 401) {
+    document.getElementById('login-err').style.display = 'block'
+    return
+  }
+  TOKEN = secret
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  loadQueue()
+  loadPolicies()
+}
+
+document.getElementById('login-form').addEventListener('submit', e => {
+  e.preventDefault()
+  login()
+})
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    ...opts
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+function showTab(name) {
+  document.querySelectorAll('#tabs .tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name)
+  })
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'))
+  document.getElementById(`pane-${name}`).classList.add('active')
+
+  if (name === 'queue') { activeListPane = 'queue'; loadQueue() }
+  else if (name === 'history') { activeListPane = 'history'; loadHistory() }
+  else if (name === 'announce') renderAnnounceForm()
+  else if (name === 'policies') loadPolicies()
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tab[data-tab]')
+  if (tab) showTab(tab.dataset.tab)
+})
+document.querySelector('header').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]')
+  if (b && b.dataset.tab) showTab(b.dataset.tab)
+})
+
+async function loadQueue() {
+  const el = document.getElementById('pane-queue')
+  el.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>'
+  const posts = await api('/api/posts?mode=queue')
+  el.innerHTML = ''
+  posts.forEach(p => postsById.set(p.id, p))
+  if (!posts.length) { el.innerHTML = '<div class="empty-state">Queue is empty.</div>'; return }
+  posts.forEach(p => el.appendChild(renderPostCard(p, 'queue')))
+}
+
+async function loadHistory() {
+  const el = document.getElementById('pane-history')
+  el.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>'
+  const posts = await api('/api/posts?mode=history')
+  el.innerHTML = ''
+  posts.forEach(p => postsById.set(p.id, p))
+  if (!posts.length) { el.innerHTML = '<div class="empty-state">No history yet.</div>'; return }
+  posts.forEach(p => el.appendChild(renderPostCard(p, 'history')))
+}
+
+const STATUS_BADGE = {
+  pending: 'badge-pending', processing: 'badge-processing', scheduled: 'badge-scheduled',
+  draft: 'badge-draft', published: 'badge-published', failed: 'badge-failed'
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function renderPostCard(post, pane) {
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.dataset.postId = post.id
+  card.dataset.pane = pane
+
+  const m = post.matches
+  const matchLabel = m
+    ? `${m.team_a?.name ?? '?'} ${m.score_a} – ${m.score_b} ${m.team_b?.name ?? '?'}`
+    : null
+
+  const captionText = post.caption ?? ''
+  const escCaption = escapeHtml(captionText)
+  const viewBody = captionText
+    ? escCaption
+    : '<span class="empty">Body will be built by worker from match data</span>'
+
+  card.innerHTML = `
+    <div class="card-row" style="margin-bottom:10px">
+      <div class="card-meta">
+        <span class="badge ${STATUS_BADGE[post.status] ?? ''}">${escapeHtml(post.status)}</span>
+        <span style="color:var(--muted);font-size:12px;text-transform:capitalize">${escapeHtml((post.post_type ?? '').replace(/_/g,' '))}</span>
+        ${post.scheduled_for ? `<span style="color:var(--muted);font-size:12px">· ${escapeHtml(new Date(post.scheduled_for).toLocaleString())}</span>` : ''}
+        ${matchLabel ? `<span class="match-label">${escapeHtml(matchLabel)}</span>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${post.x_post_id ? `<a class="x-link" href="https://x.com/i/web/status/${escapeHtml(post.x_post_id)}" target="_blank" rel="noopener">View on X ↗</a>` : ''}
+      </div>
+    </div>
+
+    ${post.bg_image_url ? `<img class="preview-img" src="${escapeHtml(post.bg_image_url)}" alt="card">` : ''}
+
+    <div class="view-mode" data-view>
+      <div class="caption-box ${captionText ? '' : 'empty'}">${viewBody}</div>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="edit" data-id="${escapeHtml(post.id)}">Edit</button>
+        ${['pending','draft'].includes(post.status) ? `<button type="button" class="btn btn-primary btn-sm" data-action="publish-now" data-id="${escapeHtml(post.id)}">Post now</button>` : ''}
+        ${post.status === 'failed' ? `
+          <button type="button" class="btn btn-amber btn-sm" data-action="publish-now" data-id="${escapeHtml(post.id)}">Retry</button>
+          <button type="button" class="btn btn-danger btn-sm" data-action="dismiss" data-id="${escapeHtml(post.id)}">Dismiss</button>
+        ` : ''}
+      </div>
+      ${post.error ? `<div class="error-box">Error: ${escapeHtml(post.error)}</div>` : ''}
+    </div>
+  `
+  return card
+}
+
+document.getElementById('app').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-action]')
+  if (!btn) return
+  const id = btn.dataset.id
+  const action = btn.dataset.action
+  const card = btn.closest('.card')
+  const pane = card?.dataset.pane || activeListPane
+
+  if (action === 'edit') {
+    const post = postsById.get(id)
+    if (!post) return
+    startEdit(card, post)
+  }
+  if (action === 'publish-now') {
+    await api(`/api/posts/${id}/publish-now`, { method: 'POST' })
+    if (pane === 'queue') loadQueue()
+    else loadHistory()
+  }
+  if (action === 'dismiss') {
+    await api(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'failed' }) })
+    if (pane === 'queue') loadQueue()
+    else loadHistory()
+  }
+  if (action === 'save-draft') {
+    const caption = card.querySelector('textarea').value
+    await api(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ caption, status: 'draft' }) })
+    if (pane === 'queue') loadQueue()
+    else loadHistory()
+  }
+  if (action === 'save-publish') {
+    const caption = card.querySelector('textarea').value
+    await api(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ caption }) })
+    await api(`/api/posts/${id}/publish-now`, { method: 'POST' })
+    if (pane === 'queue') loadQueue()
+    else loadHistory()
+  }
+  if (action === 'cancel-edit') {
+    if (pane === 'queue') loadQueue()
+    else loadHistory()
+  }
+})
+
+function startEdit(card, post) {
+  const view = card.querySelector('[data-view]')
+  const id = post.id
+  const cap = post.caption ?? ''
+  view.innerHTML = `
+    <textarea id="edit-${id}" rows="5" style="margin:8px 0;font-family:monospace"></textarea>
+    <div class="char-count" id="cc-${id}">${cap.length}/280</div>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost btn-sm" data-action="save-draft" data-id="${escapeHtml(id)}">Save draft</button>
+      <button type="button" class="btn btn-primary btn-sm" data-action="save-publish" data-id="${escapeHtml(id)}">Save + post now</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="cancel-edit" data-id="${escapeHtml(id)}">Cancel</button>
+    </div>
+  `
+  const ta = document.getElementById(`edit-${id}`)
+  ta.value = cap
+  const cc = document.getElementById(`cc-${id}`)
+  ta.addEventListener('input', () => { cc.textContent = ta.value.length + '/280' })
+}
+
+function renderAnnounceForm() {
+  document.getElementById('pane-announce').innerHTML = `
+    <div class="card" style="max-width:580px">
+      <h2 style="font-size:15px;font-weight:500;margin-bottom:16px">New announcement</h2>
+
+      <div class="form-grid">
+        <label class="field">
+          <span>Type</span>
+          <select id="a-type">
+            <option value="announcement">announcement</option>
+            <option value="registrations_open">registrations open</option>
+            <option value="schedule_drop">schedule drop</option>
+            <option value="combine_reminder">combine reminder</option>
+            <option value="playoff_bracket">playoff bracket</option>
+            <option value="player_of_the_week">player of the week</option>
+            <option value="stream_live">stream live</option>
+            <option value="champion">champion</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Schedule for (optional)</span>
+          <input type="datetime-local" id="a-schedule">
+        </label>
+      </div>
+
+      <label class="field form-grid full">
+        <span>Post body</span>
+        <textarea id="a-caption" rows="6" placeholder="Write your post..."></textarea>
+        <div class="char-count" id="a-cc">0/280</div>
+      </label>
+
+      <label class="field" style="margin-top:12px">
+        <span>Hashtags (optional)</span>
+        <input id="a-tags" placeholder="#LBA #ProAmRank">
+      </label>
+
+      <div class="actions" style="margin-top:16px">
+        <button type="button" class="btn btn-primary" id="a-submit-now">
+          <span id="a-btn-label">Post now</span>
+        </button>
+        <button type="button" class="btn btn-ghost" id="a-submit-draft">Save as draft</button>
+      </div>
+      <p id="a-success" style="color:var(--green);font-size:13px;margin-top:10px;display:none">Posted ✓</p>
+    </div>
+  `
+
+  document.getElementById('a-caption').addEventListener('input', function() {
+    document.getElementById('a-cc').textContent = this.value.length + '/280'
+  })
+
+  document.getElementById('a-schedule').addEventListener('input', function() {
+    document.getElementById('a-btn-label').textContent = this.value ? 'Schedule' : 'Post now'
+  })
+
+  document.getElementById('a-submit-now').addEventListener('click', () => submitAnnouncement(false))
+  document.getElementById('a-submit-draft').addEventListener('click', () => submitAnnouncement(true))
+}
+
+async function submitAnnouncement(asDraft) {
+  const caption = document.getElementById('a-caption').value.trim()
+  if (!caption) return
+
+  const sched = document.getElementById('a-schedule').value
+  let scheduled_for = sched ? new Date(sched).toISOString() : null
+
+  await api('/api/posts', {
+    method: 'POST',
+    body: JSON.stringify({
+      type: document.getElementById('a-type').value,
+      caption,
+      hashtags: document.getElementById('a-tags').value,
+      scheduled_for,
+      draft: asDraft,
+    })
+  })
+
+  document.getElementById('a-success').style.display = 'block'
+  setTimeout(() => showTab('queue'), 1000)
+}
+
+async function loadPolicies() {
+  const el = document.getElementById('pane-policies')
+  el.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>'
+
+  const { leagues, policies } = await api('/api/policies')
+
+  el.innerHTML = `
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
+      Controls which leagues auto-post when a game is verified.
+      X credentials are stored in <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">webhook_config</code> per league
+      (<code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">x_access_token</code> + <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">x_access_secret</code>).
+    </p>
+    <div class="card" id="policies-card"></div>
+  `
+  const card = document.getElementById('policies-card')
+  card.innerHTML = (leagues || []).map(lg => {
+    const pol = policies.find(p => p.league_id === lg.id) ?? {}
+    const autoPost = pol.auto_post_verified_games ?? false
+    const hasCredentials = lg.has_x_credentials === true
+    const name = escapeHtml(lg.league ?? lg.id)
+    return `
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <strong>${name}</strong>
+          <small>${hasCredentials ? 'X tokens in webhook_config' : '⚠ Missing x_access_token / x_access_secret in webhook_config'}</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" ${autoPost ? 'checked' : ''} data-policy-toggle data-league="${escapeHtml(lg.id)}">
+          <span class="slider"></span>
+        </label>
+      </div>
+    `
+  }).join('') || '<div class="empty-state">No leagues.</div>'
+
+  card.addEventListener('change', async ev => {
+    const inp = ev.target.closest('input[data-policy-toggle]')
+    if (!inp) return
+    await api(`/api/policies/${inp.dataset.league}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ auto_post_verified_games: inp.checked })
+    })
+  })
+}
+</script>
+</body>
+</html>

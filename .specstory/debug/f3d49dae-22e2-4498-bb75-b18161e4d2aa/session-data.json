@@ -938,7 +938,33 @@
           "content": [
             {
               "type": "text",
-              "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: \u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
+              "text": "\u003cthink\u003e\u003cdetails\u003e\u003csummary\u003eThought Process\u003c/summary\u003e\n**Investigating migration error**\n\nI'm investigating why the unique index with `publish_surface::text` fails due to a function not being marked IMMUTABLE. I'm exploring alternatives to the non-immutable `publish_surface::text` function for the unique index. \n\nI'm replacing `publish_surface::text` with `pg_catalog.array_to_string(publish_surface, chr(1))` to ensure STABLE function usage for the unique index. \n\n**Checking function stability**\n\nI'm using `pg_catalog.array_to_string` instead of `array_out` to ensure IMMUTABLE function usage for the index expression. I'm switching to `array_to_string` for the index expression to ensure STABLE function usage. \n\n**Creating unique index**\n\nI'm implementing a partial index on `match_id` with `WHERE publish_surface = ARRAY['x']::text[] AND status NOT IN (...)` for X-only deduplication. I'm switching from `publish_surface::text` cast to `array_to_string` for the index expression since the cast isn't immutable. \n\nI confirmed that `array_to_string` with `text[]` is IMMUTABLE in PostgreSQL, so the index expression is valid. I'm implementing a partial unique index for X posts using `publish_surface = ARRAY['x']::text[]` to avoid conflicts with other surfaces. \n\nI'm implementing a partial unique index with `publish_surface = ARRAY['x']::text[]` to deduplicate only when surface is exactly ['x'], matching the user's INSERT behavior. I'm implementing a partial unique index on `match_id` with WHERE clause matching the ON CONFLICT condition. \u003c/details\u003e\u003c/think\u003e"
+            }
+          ],
+          "metadata": {
+            "mode": "Agent"
+          }
+        },
+        {
+          "role": "agent",
+          "model": "composer-2-fast",
+          "content": [
+            {
+              "type": "text",
+              "text": "\nReplacing the index: casting `text[]` to `text` uses a non-IMMUTABLE cast, which PostgreSQL disallows in index expressions. Using a partial unique index on `match_id` where `publish_surface = array['x']::text[]` instead.\n\n"
+            }
+          ],
+          "metadata": {
+            "mode": "Agent"
+          }
+        },
+        {
+          "role": "agent",
+          "model": "composer-2-fast",
+          "content": [
+            {
+              "type": "text",
+              "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql\u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
           "tool": {
@@ -955,7 +981,20 @@
           "content": [
             {
               "type": "text",
-              "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql\u003c/summary\u003e\n\nStatus: **loading**\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
+              "text": "\n\n\n"
+            }
+          ],
+          "metadata": {
+            "mode": "Agent"
+          }
+        },
+        {
+          "role": "agent",
+          "model": "composer-2-fast",
+          "content": [
+            {
+              "type": "text",
+              "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql\u003c/summary\u003e\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
             }
           ],
           "tool": {
@@ -972,13 +1011,26 @@
           "content": [
             {
               "type": "text",
-              "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql\u003c/summary\u003e\n\nStatus: **loading**\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
+              "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql\u003c/summary\u003e\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
             }
           ],
           "tool": {
             "name": "edit_file_v2",
             "type": "write"
           },
+          "metadata": {
+            "mode": "Agent"
+          }
+        },
+        {
+          "role": "agent",
+          "model": "composer-2-fast",
+          "content": [
+            {
+              "type": "text",
+              "text": "\nHere’s what was going wrong and what we changed.\n\n### Cause\n\nPostgres only allows **immutable** expressions in index definitions. The cast **`publish_surface::text`** on a `text[]` column is implemented with a function that is **not** marked `IMMUTABLE`, so the index creation failed with `42P17`.\n\n### Fix\n\nStop using a cast in the index. For your flow, X rows are always **`publish_surface = array['x']::text[]`**, so a **partial unique index on `match_id`** with  \n`publish_surface = array['x']::text[]` in the `WHERE` clause is enough and uses only immutable comparisons.\n\nThe **`ON CONFLICT`** clause was updated so its predicate matches that index (same `WHERE` as the partial unique index).\n\n**Semantic note:** Uniqueness is now “one qualifying row per `match_id` when surfaces are **exactly** `['x']`.” Rows with e.g. `['x','instagram']` are not covered by this index and won’t conflict with an `['x']` row—which matches how the trigger inserts today.\n\nRe-run the migration (or run the updated SQL in the dashboard). If a failed run left a half-applied state, say what succeeded and we can align cleanup steps."
+            }
+          ],
           "metadata": {
             "mode": "Agent"
           }

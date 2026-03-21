@@ -1370,8 +1370,36 @@ Error: Failed to run sql query: ERROR: 42P17: functions in index expression must
 
 _**Agent (composer-2-fast)**_
 
+<think><details><summary>Thought Process</summary>
+**Investigating migration error**
+
+I'm investigating why the unique index with `publish_surface::text` fails due to a function not being marked IMMUTABLE. I'm exploring alternatives to the non-immutable `publish_surface::text` function for the unique index. 
+
+I'm replacing `publish_surface::text` with `pg_catalog.array_to_string(publish_surface, chr(1))` to ensure STABLE function usage for the unique index. 
+
+**Checking function stability**
+
+I'm using `pg_catalog.array_to_string` instead of `array_out` to ensure IMMUTABLE function usage for the index expression. I'm switching to `array_to_string` for the index expression to ensure STABLE function usage. 
+
+**Creating unique index**
+
+I'm implementing a partial index on `match_id` with `WHERE publish_surface = ARRAY['x']::text[] AND status NOT IN (...)` for X-only deduplication. I'm switching from `publish_surface::text` cast to `array_to_string` for the index expression since the cast isn't immutable. 
+
+I confirmed that `array_to_string` with `text[]` is IMMUTABLE in PostgreSQL, so the index expression is valid. I'm implementing a partial unique index for X posts using `publish_surface = ARRAY['x']::text[]` to avoid conflicts with other surfaces. 
+
+I'm implementing a partial unique index with `publish_surface = ARRAY['x']::text[]` to deduplicate only when surface is exactly ['x'], matching the user's INSERT behavior. I'm implementing a partial unique index on `match_id` with WHERE clause matching the ON CONFLICT condition. </details></think>
+
+_**Agent (composer-2-fast)**_
+
+
+Replacing the index: casting `text[]` to `text` uses a non-IMMUTABLE cast, which PostgreSQL disallows in index expressions. Using a partial unique index on `match_id` where `publish_surface = array['x']::text[]` instead.
+
+
+
+_**Agent (composer-2-fast)**_
+
 <tool-use data-tool-type="read" data-tool-name="read_file_v2">
-<details><summary>Tool use: **read_file_v2** • Read file: </summary>
+<details><summary>Tool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql</summary>
 
 </details>
 </tool-use>
@@ -1383,11 +1411,16 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
+
+
+
+
+
+_**Agent (composer-2-fast)**_
+
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
 <details><summary>Tool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql</summary>
-
-Status: **loading**
 
 </details>
 
@@ -1404,8 +1437,6 @@ _**Agent (composer-2-fast)**_
 
 <details><summary>Tool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql</summary>
 
-Status: **loading**
-
 </details>
 
 </tool-use>
@@ -1414,3 +1445,23 @@ Status: **loading**
 <summary>Tool use: **edit_file_v2**</summary>
 
 </details></tool-use>
+
+_**Agent (composer-2-fast)**_
+
+
+Here’s what was going wrong and what we changed.
+
+### Cause
+
+Postgres only allows **immutable** expressions in index definitions. The cast **`publish_surface::text`** on a `text[]` column is implemented with a function that is **not** marked `IMMUTABLE`, so the index creation failed with `42P17`.
+
+### Fix
+
+Stop using a cast in the index. For your flow, X rows are always **`publish_surface = array['x']::text[]`**, so a **partial unique index on `match_id`** with  
+`publish_surface = array['x']::text[]` in the `WHERE` clause is enough and uses only immutable comparisons.
+
+The **`ON CONFLICT`** clause was updated so its predicate matches that index (same `WHERE` as the partial unique index).
+
+**Semantic note:** Uniqueness is now “one qualifying row per `match_id` when surfaces are **exactly** `['x']`.” Rows with e.g. `['x','instagram']` are not covered by this index and won’t conflict with an `['x']` row—which matches how the trigger inserts today.
+
+Re-run the migration (or run the updated SQL in the dashboard). If a failed run left a half-applied state, say what succeeded and we can align cleanup steps.
