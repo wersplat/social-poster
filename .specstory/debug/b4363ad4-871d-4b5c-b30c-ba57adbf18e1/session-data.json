@@ -28,7 +28,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nExploring the project structure and key files to produce an accurate README.\n\n"
+              "text": "Exploring the project structure and key files to produce an accurate README.\n\n"
             }
           ],
           "metadata": {
@@ -92,19 +92,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2-fast",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"search\" data-tool-name=\"glob_file_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **glob_file_search** • Searched codebase \"\" • **1** result in **1** directory\u003c/summary\u003e\n\nDirectory: **/Volumes/870SSD/Active GH Projects/social-poster** (1 file)\n\n| File |\n|------|\n| `worker/package.json` |\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -180,19 +167,6 @@
             "name": "glob_file_search",
             "type": "search"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2-fast",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -210,19 +184,6 @@
             "name": "run_terminal_command_v2",
             "type": "shell"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2-fast",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -257,19 +218,6 @@
             "name": "run_terminal_command_v2",
             "type": "shell"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2-fast",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -327,19 +275,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2-fast",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/worker/tsconfig.json\u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -357,7 +292,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nCreating a root `README.md` that documents the worker: it polls Supabase and publishes scheduled posts to X.\n\n"
+              "text": "Creating a root `README.md` that documents the worker: it polls Supabase and publishes scheduled posts to X.\n\n"
             }
           ],
           "metadata": {
@@ -400,7 +335,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nAdding `worker/.env.example` so the README's `cp .env.example .env` step works.\n\n"
+              "text": "Adding `worker/.env.example` so the README's `cp .env.example .env` step works.\n\n"
             }
           ],
           "metadata": {
@@ -430,7 +365,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nHere’s what was added:\n\n### [`README.md`](README.md) (repo root)\n\n- **What it is** — Supabase-backed worker that publishes `scheduled_posts` to X, with polling intervals, caption logic, media upload, retries, and stuck-`processing` cleanup (all aligned with `worker/src/index.ts`).\n- **Setup** — `cd worker`, install deps, env file, `build` / `start`, and optional `dev` (not run by me per your rules).\n- **Environment** — Table of required env vars and when per-league `webhook_config` tokens apply.\n- **Behavior \u0026 data** — High-level flow and which tables the code touches (without inventing a schema beyond what the code uses).\n- **Scripts \u0026 layout** — Short reference for the `worker` package.\n\n### [`worker/.env.example`](worker/.env.example)\n\n- Placeholder env keys so the README’s `cp .env.example .env` step is valid and secrets stay out of git.\n\nIf you want the README to mention a specific host (e.g. Railway) or a systemd/cron deploy pattern, say how you run it and we can add a short “Deployment” section."
+              "text": "Here’s what was added:\n\n### [`README.md`](README.md) (repo root)\n\n- **What it is** — Supabase-backed worker that publishes `scheduled_posts` to X, with polling intervals, caption logic, media upload, retries, and stuck-`processing` cleanup (all aligned with `worker/src/index.ts`).\n- **Setup** — `cd worker`, install deps, env file, `build` / `start`, and optional `dev` (not run by me per your rules).\n- **Environment** — Table of required env vars and when per-league `webhook_config` tokens apply.\n- **Behavior \u0026 data** — High-level flow and which tables the code touches (without inventing a schema beyond what the code uses).\n- **Scripts \u0026 layout** — Short reference for the `worker` package.\n\n### [`worker/.env.example`](worker/.env.example)\n\n- Placeholder env keys so the README’s `cp .env.example .env` step is valid and secrets stay out of git.\n\nIf you want the README to mention a specific host (e.g. Railway) or a systemd/cron deploy pattern, say how you run it and we can add a short “Deployment” section."
             }
           ],
           "metadata": {

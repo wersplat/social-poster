@@ -951,7 +951,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nReplacing the index: casting `text[]` to `text` uses a non-IMMUTABLE cast, which PostgreSQL disallows in index expressions. Using a partial unique index on `match_id` where `publish_surface = array['x']::text[]` instead.\n\n"
+              "text": "Replacing the index: casting `text[]` to `text` uses a non-IMMUTABLE cast, which PostgreSQL disallows in index expressions. Using a partial unique index on `match_id` where `publish_surface = array['x']::text[]` instead.\n\n"
             }
           ],
           "metadata": {
@@ -981,19 +981,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2-fast",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql\u003c/summary\u003e\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
             }
           ],
@@ -1028,7 +1015,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nHere’s what was going wrong and what we changed.\n\n### Cause\n\nPostgres only allows **immutable** expressions in index definitions. The cast **`publish_surface::text`** on a `text[]` column is implemented with a function that is **not** marked `IMMUTABLE`, so the index creation failed with `42P17`.\n\n### Fix\n\nStop using a cast in the index. For your flow, X rows are always **`publish_surface = array['x']::text[]`**, so a **partial unique index on `match_id`** with  \n`publish_surface = array['x']::text[]` in the `WHERE` clause is enough and uses only immutable comparisons.\n\nThe **`ON CONFLICT`** clause was updated so its predicate matches that index (same `WHERE` as the partial unique index).\n\n**Semantic note:** Uniqueness is now “one qualifying row per `match_id` when surfaces are **exactly** `['x']`.” Rows with e.g. `['x','instagram']` are not covered by this index and won’t conflict with an `['x']` row—which matches how the trigger inserts today.\n\nRe-run the migration (or run the updated SQL in the dashboard). If a failed run left a half-applied state, say what succeeded and we can align cleanup steps."
+              "text": "Here’s what was going wrong and what we changed.\n\n### Cause\n\nPostgres only allows **immutable** expressions in index definitions. The cast **`publish_surface::text`** on a `text[]` column is implemented with a function that is **not** marked `IMMUTABLE`, so the index creation failed with `42P17`.\n\n### Fix\n\nStop using a cast in the index. For your flow, X rows are always **`publish_surface = array['x']::text[]`**, so a **partial unique index on `match_id`** with  \n`publish_surface = array['x']::text[]` in the `WHERE` clause is enough and uses only immutable comparisons.\n\nThe **`ON CONFLICT`** clause was updated so its predicate matches that index (same `WHERE` as the partial unique index).\n\n**Semantic note:** Uniqueness is now “one qualifying row per `match_id` when surfaces are **exactly** `['x']`.” Rows with e.g. `['x','instagram']` are not covered by this index and won’t conflict with an `['x']` row—which matches how the trigger inserts today.\n\nRe-run the migration (or run the updated SQL in the dashboard). If a failed run left a half-applied state, say what succeeded and we can align cleanup steps."
             }
           ],
           "metadata": {

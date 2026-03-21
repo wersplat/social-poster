@@ -1391,7 +1391,6 @@ I'm implementing a partial unique index with `publish_surface = ARRAY['x']::text
 
 _**Agent (composer-2-fast)**_
 
-
 Replacing the index: casting `text[]` to `text` uses a non-IMMUTABLE cast, which PostgreSQL disallows in index expressions. Using a partial unique index on `match_id` where `publish_surface = array['x']::text[]` instead.
 
 
@@ -1411,13 +1410,6 @@ _**Agent (composer-2-fast)**_
 
 _**Agent (composer-2-fast)**_
 
-
-
-
-
-
-_**Agent (composer-2-fast)**_
-
 <tool-use data-tool-type="write" data-tool-name="edit_file_v2">
 
 <details><summary>Tool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/supabase/migrations/20260320120000_x_scheduled_posts_post_policies.sql</summary>
@@ -1447,7 +1439,6 @@ _**Agent (composer-2-fast)**_
 </details></tool-use>
 
 _**Agent (composer-2-fast)**_
-
 
 Here’s what was going wrong and what we changed.
 

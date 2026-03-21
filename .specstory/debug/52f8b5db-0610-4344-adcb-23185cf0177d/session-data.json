@@ -2725,7 +2725,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nInvestigating how we call the X API and what a 402 response indicates.\n\n"
+              "text": "Investigating how we call the X API and what a 402 response indicates.\n\n"
             }
           ],
           "metadata": {
@@ -2772,19 +2772,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"unknown\" data-tool-name=\"ripgrep_raw_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **ripgrep_raw_search**\u003c/summary\u003e\n\n\nParameters:\n\n```json\n{\n  \"caseInsensitive\": false,\n  \"glob\": \"*.js\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2\",\n  \"pattern\": \"402|ApiResponseError|TwitterApiError\"\n}\n```\nAdditional data:\n\n```json\n{\n  \"isPruned\": true,\n  \"outputMode\": \"content\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2\",\n  \"pattern\": \"402|ApiResponseError|TwitterApiError\",\n  \"topFiles\": [],\n  \"totalFiles\": 0,\n  \"totalMatches\": 0\n}\n```\nStatus: **completed**\n\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -2802,19 +2789,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"search\" data-tool-name=\"glob_file_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **glob_file_search** • Searched codebase \"\" • **0** results in **1** directory\u003c/summary\u003e\n\nDirectory: **/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2** (0 files)\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -2822,19 +2796,6 @@
             "name": "glob_file_search",
             "type": "search"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -2862,19 +2823,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"unknown\" data-tool-name=\"ripgrep_raw_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **ripgrep_raw_search**\u003c/summary\u003e\n\n\nParameters:\n\n```json\n{\n  \"caseInsensitive\": false,\n  \"glob\": \"*.js\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/dist\",\n  \"pattern\": \"class.*Error|request.*failed\"\n}\n```\nAdditional data:\n\n```json\n{\n  \"isPruned\": true,\n  \"outputMode\": \"content\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/dist\",\n  \"pattern\": \"class.*Error|request.*failed\",\n  \"topFiles\": [],\n  \"totalFiles\": 0,\n  \"totalMatches\": 0\n}\n```\nStatus: **completed**\n\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -2882,19 +2830,6 @@
             "name": "ripgrep_raw_search",
             "type": "unknown"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -2922,19 +2857,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/package.json\u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -2942,19 +2864,6 @@
             "name": "read_file_v2",
             "type": "read"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -2982,19 +2891,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"unknown\" data-tool-name=\"ripgrep_raw_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **ripgrep_raw_search**\u003c/summary\u003e\n\n\nParameters:\n\n```json\n{\n  \"caseInsensitive\": false,\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2\",\n  \"pattern\": \"failed with code\"\n}\n```\nAdditional data:\n\n```json\n{\n  \"isPruned\": true,\n  \"outputMode\": \"content\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2\",\n  \"pattern\": \"failed with code\",\n  \"topFiles\": [],\n  \"totalFiles\": 0,\n  \"totalMatches\": 0\n}\n```\nStatus: **completed**\n\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3002,19 +2898,6 @@
             "name": "ripgrep_raw_search",
             "type": "unknown"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3042,19 +2925,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"unknown\" data-tool-name=\"ripgrep_raw_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **ripgrep_raw_search**\u003c/summary\u003e\n\n\nParameters:\n\n```json\n{\n  \"caseInsensitive\": false,\n  \"glob\": \"*.js\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules\",\n  \"pattern\": \"Request failed\"\n}\n```\nAdditional data:\n\n```json\n{\n  \"isPruned\": true,\n  \"outputMode\": \"content\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules\",\n  \"pattern\": \"Request failed\",\n  \"topFiles\": [],\n  \"totalFiles\": 0,\n  \"totalMatches\": 0\n}\n```\nStatus: **completed**\n\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3062,19 +2932,6 @@
             "name": "ripgrep_raw_search",
             "type": "unknown"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3102,19 +2959,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"shell\" data-tool-name=\"run_terminal_command_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **run_terminal_command_v2** • Run command: grep -r \"Request failed\" \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2\" 2\u003e/dev/null | head -5\u003c/summary\u003e\n\n```bash\ngrep -r \"Request failed\" \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2\" 2\u003e/dev/null | head -5\n```\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3132,19 +2976,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/dist/cjs/client-mixins/request-handler.helper.js\u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3162,19 +2993,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/dist/cjs/client-mixins/request-handler.helper.js\u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3182,19 +3000,6 @@
             "name": "read_file_v2",
             "type": "read"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3212,19 +3017,6 @@
             "name": "read_file_v2",
             "type": "read"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3253,19 +3045,6 @@
             {
               "type": "text",
               "text": "\u003cthink\u003e\u003cdetails\u003e\u003csummary\u003eThought Process\u003c/summary\u003e\n**Updating publisher**\n\nI'm adding error handling for Twitter API responses, including specific handling for 402 errors and media-related issues. \u003c/details\u003e\u003c/think\u003e"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
             }
           ],
           "metadata": {
@@ -3308,7 +3087,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\nImproving X API error reporting. HTTP 402 from X's API usually indicates an account/access/billing restriction (not a bug in our code). Adding clearer errors and splitting media upload vs tweet so we can see which step failed.\n\n"
+              "text": "Improving X API error reporting. HTTP 402 from X's API usually indicates an account/access/billing restriction (not a bug in our code). Adding clearer errors and splitting media upload vs tweet so we can see which step failed.\n\n"
             }
           ],
           "metadata": {
@@ -3338,19 +3117,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"unknown\" data-tool-name=\"ripgrep_raw_search\"\u003e\n\u003cdetails\u003e\n\u003csummary\u003eTool use: **ripgrep_raw_search**\u003c/summary\u003e\n\n\nParameters:\n\n```json\n{\n  \"caseInsensitive\": false,\n  \"glob\": \"index.d.ts\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/dist/esm/types\",\n  \"pattern\": \"ApiResponseError\"\n}\n```\nAdditional data:\n\n```json\n{\n  \"isPruned\": true,\n  \"outputMode\": \"content\",\n  \"path\": \"/Volumes/870SSD/Active GH Projects/social-poster/worker/node_modules/twitter-api-v2/dist/esm/types\",\n  \"pattern\": \"ApiResponseError\",\n  \"topFiles\": [],\n  \"totalFiles\": 0,\n  \"totalMatches\": 0\n}\n```\nStatus: **completed**\n\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3358,19 +3124,6 @@
             "name": "ripgrep_raw_search",
             "type": "unknown"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3398,19 +3151,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/worker/src/publisher.ts\u003c/summary\u003e\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
             }
           ],
@@ -3435,19 +3175,6 @@
             "name": "edit_file_v2",
             "type": "write"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3492,19 +3219,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/README.md\u003c/summary\u003e\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
             }
           ],
@@ -3512,19 +3226,6 @@
             "name": "edit_file_v2",
             "type": "write"
           },
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
           "metadata": {
             "mode": "Agent"
           }
@@ -3552,7 +3253,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\n### What `code 402` means here\n\nThat line is **not** from the poller logic itself. It comes from **`twitter-api-v2`**: X’s HTTP API responded with **status 402** to a request (usually **post tweet** or **media upload**). In practice that almost always points to **X developer access / billing / product tier** (or an account restriction), not a bug in your `scheduled_posts` row.\n\n### What we changed\n\n1. **[`worker/src/publisher.ts`](worker/src/publisher.ts)**  \n   - **`[x tweet]`** / **`[x media]`** prefixes so logs and `scheduled_posts.error` show **which step** failed.  \n   - On **`ApiResponseError`**, the message now includes **`JSON.stringify` of the response body** when present (so you can see X’s real error payload next time).  \n   - Short hints for **402** and **403** in the thrown message.  \n   - **Media:** `fetch(mediaUrl)` is checked with **`res.ok`** so a bad image URL isn’t mistaken for an X tweet error.\n\n2. **[`README.md`](README.md)** — short **Troubleshooting (X API)** section for 402 / media.\n\n### What you should do on the X side\n\n- Open the [X developer portal](https://developer.x.com/), confirm the **project/app** has a tier that allows **posting** (and media if you attach images).  \n- Regenerate or reconnect **user access tokens** if the app or permissions changed.  \n- Retry the post; new failures should show a longer `error` string (and often X’s JSON) in the admin UI and in logs.\n\nThe **SES** / **wheel** console lines are still from **extensions**, not this app."
+              "text": "### What `code 402` means here\n\nThat line is **not** from the poller logic itself. It comes from **`twitter-api-v2`**: X’s HTTP API responded with **status 402** to a request (usually **post tweet** or **media upload**). In practice that almost always points to **X developer access / billing / product tier** (or an account restriction), not a bug in your `scheduled_posts` row.\n\n### What we changed\n\n1. **[`worker/src/publisher.ts`](worker/src/publisher.ts)**  \n   - **`[x tweet]`** / **`[x media]`** prefixes so logs and `scheduled_posts.error` show **which step** failed.  \n   - On **`ApiResponseError`**, the message now includes **`JSON.stringify` of the response body** when present (so you can see X’s real error payload next time).  \n   - Short hints for **402** and **403** in the thrown message.  \n   - **Media:** `fetch(mediaUrl)` is checked with **`res.ok`** so a bad image URL isn’t mistaken for an X tweet error.\n\n2. **[`README.md`](README.md)** — short **Troubleshooting (X API)** section for 402 / media.\n\n### What you should do on the X side\n\n- Open the [X developer portal](https://developer.x.com/), confirm the **project/app** has a tier that allows **posting** (and media if you attach images).  \n- Regenerate or reconnect **user access tokens** if the app or permissions changed.  \n- Retry the post; new failures should show a longer `error` string (and often X’s JSON) in the admin UI and in logs.\n\nThe **SES** / **wheel** console lines are still from **extensions**, not this app."
             }
           ],
           "metadata": {
@@ -3592,7 +3293,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\n401 Unauthorized indicates invalid or missing OAuth credentials for the X user context. Adding startup checks that warn when default env tokens are missing and improving the 401 error hint.\n\n"
+              "text": "401 Unauthorized indicates invalid or missing OAuth credentials for the X user context. Adding startup checks that warn when default env tokens are missing and improving the 401 error hint.\n\n"
             }
           ],
           "metadata": {
@@ -3652,19 +3353,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"read\" data-tool-name=\"read_file_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **read_file_v2** • Read file: /Volumes/870SSD/Active GH Projects/social-poster/worker/src/publisher.ts\u003c/summary\u003e\n\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3695,7 +3383,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\n401 means X rejected OAuth credentials (wrong/expired tokens, read-only app, or tokens from a different app). Adding startup warnings, validating env before calling the API, and clearer 401 messaging.\n\n"
+              "text": "401 means X rejected OAuth credentials (wrong/expired tokens, read-only app, or tokens from a different app). Adding startup warnings, validating env before calling the API, and clearer 401 messaging.\n\n"
             }
           ],
           "metadata": {
@@ -3772,19 +3460,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"write\" data-tool-name=\"edit_file_v2\"\u003e\n\n\u003cdetails\u003e\u003csummary\u003eTool use: **edit_file_v2** • Edit file: /Volumes/870SSD/Active GH Projects/social-poster/worker/src/publisher.ts\u003c/summary\u003e\n\n\u003c/details\u003e\n\n\u003c/tool-use\u003e"
             }
           ],
@@ -3836,19 +3511,6 @@
           "content": [
             {
               "type": "text",
-              "text": "\n\n\n"
-            }
-          ],
-          "metadata": {
-            "mode": "Agent"
-          }
-        },
-        {
-          "role": "agent",
-          "model": "composer-2",
-          "content": [
-            {
-              "type": "text",
               "text": "\u003ctool-use data-tool-type=\"shell\" data-tool-name=\"run_terminal_command_v2\"\u003e\n\u003cdetails\u003e\u003csummary\u003eTool use: **run_terminal_command_v2** • Run command: cd \"/Volumes/870SSD/Active GH Projects/social-poster/worker\" \u0026\u0026 pnpm run build\u003c/summary\u003e\n\n```bash\ncd \"/Volumes/870SSD/Active GH Projects/social-poster/worker\" \u0026\u0026 pnpm run build\n```\n\n```\n\n\u0026gt; social-publisher@1.0.0 build /Volumes/870SSD/Active GH Projects/social-poster/worker\n\u0026gt; tsc\n\n\n```\n\u003c/details\u003e\n\u003c/tool-use\u003e"
             }
           ],
@@ -3866,7 +3528,7 @@
           "content": [
             {
               "type": "text",
-              "text": "\n### What **401 Unauthorized** means\n\nX is rejecting the **OAuth 1.0a user** request. Typical causes:\n\n1. **Token / app mismatch** — `X_ACCESS_TOKEN` + `X_ACCESS_SECRET` (or `webhook_config` values) were created for **another** app than the one whose **Consumer Key / Secret** you put in `X_API_KEY` / `X_API_SECRET`.\n2. **Revoked or rotated tokens** — regenerate **User access token + secret** in the [X developer portal](https://developer.x.com/) for the **same** app.\n3. **Read-only app** — the app must allow **Read and Write** (not read-only) to post tweets.\n4. **League path** — for posts tied to a match, the worker prefers **`webhook_config`** `x_access_token` / `x_access_secret` for that `league_id`. If those are wrong but `.env` is right, you still get 401 because the **league** client is used first.\n\n### What we changed in code\n\n- **[`worker/src/publisher.ts`](worker/src/publisher.ts)**  \n  - **`401`** branch in `formatXApiError` with a short checklist in the logged/stored message.  \n  - **`requireAppKeys()`** so missing Consumer Key/Secret fail fast with a clear message.  \n  - **Default user path:** if there’s no per-league client and **`X_ACCESS_TOKEN` / `X_ACCESS_SECRET` are missing**, we **throw before** calling X (clearer than a generic 401).  \n  - **`warnXAuthOnBoot()`** — warns at startup if app keys or default user tokens are missing.\n\n- **[`worker/src/index.ts`](worker/src/index.ts)** — calls `warnXAuthOnBoot()` once on boot.\n\n- **[`README.md`](README.md)** — **401** troubleshooting bullet.\n\nAfter restart, fix credentials in the portal (same app for **both** consumer key/secret **and** user token/secret), then update `.env` or `webhook_config` and use **Publish now** or a new post to retry."
+              "text": "### What **401 Unauthorized** means\n\nX is rejecting the **OAuth 1.0a user** request. Typical causes:\n\n1. **Token / app mismatch** — `X_ACCESS_TOKEN` + `X_ACCESS_SECRET` (or `webhook_config` values) were created for **another** app than the one whose **Consumer Key / Secret** you put in `X_API_KEY` / `X_API_SECRET`.\n2. **Revoked or rotated tokens** — regenerate **User access token + secret** in the [X developer portal](https://developer.x.com/) for the **same** app.\n3. **Read-only app** — the app must allow **Read and Write** (not read-only) to post tweets.\n4. **League path** — for posts tied to a match, the worker prefers **`webhook_config`** `x_access_token` / `x_access_secret` for that `league_id`. If those are wrong but `.env` is right, you still get 401 because the **league** client is used first.\n\n### What we changed in code\n\n- **[`worker/src/publisher.ts`](worker/src/publisher.ts)**  \n  - **`401`** branch in `formatXApiError` with a short checklist in the logged/stored message.  \n  - **`requireAppKeys()`** so missing Consumer Key/Secret fail fast with a clear message.  \n  - **Default user path:** if there’s no per-league client and **`X_ACCESS_TOKEN` / `X_ACCESS_SECRET` are missing**, we **throw before** calling X (clearer than a generic 401).  \n  - **`warnXAuthOnBoot()`** — warns at startup if app keys or default user tokens are missing.\n\n- **[`worker/src/index.ts`](worker/src/index.ts)** — calls `warnXAuthOnBoot()` once on boot.\n\n- **[`README.md`](README.md)** — **401** troubleshooting bullet.\n\nAfter restart, fix credentials in the portal (same app for **both** consumer key/secret **and** user token/secret), then update `.env` or `webhook_config` and use **Publish now** or a new post to retry."
             }
           ],
           "metadata": {
