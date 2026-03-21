@@ -53,6 +53,10 @@ function parseAnnouncementKindParam(seg: string | undefined): AnnouncementKind |
   if (s === 'registration') return 'registration'
   if (s === 'draft') return 'draft'
   if (s === 'results') return 'results'
+  if (s === 'playoffs') return 'playoffs'
+  if (s === 'champion') return 'champion'
+  if (s === 'awards') return 'awards'
+  if (s === 'schedule') return 'schedule'
   return null
 }
 
@@ -421,7 +425,13 @@ export function createServer() {
   app.get('/api/announcements/:kind/preview-prompt', authMiddleware, async c => {
     const kind = parseAnnouncementKindParam(c.req.param('kind'))
     if (!kind) {
-      return c.json({ error: 'kind must be registration, draft, or results' }, 400)
+      return c.json(
+        {
+          error:
+            'kind must be registration, draft, results, playoffs, champion, awards, or schedule',
+        },
+        400
+      )
     }
 
     const season = (c.req.query('season') ?? '').trim() || 'Season 2'
@@ -431,6 +441,14 @@ export function createServer() {
     const prize_pool = (c.req.query('prize_pool') ?? '').trim()
     const headline_override = (c.req.query('headline_override') ?? '').trim()
     const league_logo = (c.req.query('league_logo') ?? '').trim()
+    const champion_team = (c.req.query('champion_team') ?? '').trim()
+    const series_score = (c.req.query('series_score') ?? '').trim()
+    const award_name = (c.req.query('award_name') ?? '').trim()
+    const recipient_name = (c.req.query('recipient_name') ?? '').trim()
+    const recipient_stats = (c.req.query('recipient_stats') ?? '').trim()
+    const game_count = (c.req.query('game_count') ?? '').trim()
+    const start_date = (c.req.query('start_date') ?? '').trim()
+    const bracket_size = (c.req.query('bracket_size') ?? '').trim()
     const vibe = normalizeVibe(c.req.query('vibe'))
     const stylePack = normalizeStylePack(c.req.query('style_pack'))
 
@@ -443,6 +461,14 @@ export function createServer() {
       prize_pool: prize_pool || undefined,
       headline_override: headline_override || undefined,
       league_logo: league_logo || null,
+      champion_team: champion_team || undefined,
+      series_score: series_score || undefined,
+      award_name: award_name || undefined,
+      recipient_name: recipient_name || undefined,
+      recipient_stats: recipient_stats || undefined,
+      game_count: game_count || undefined,
+      start_date: start_date || undefined,
+      bracket_size: bracket_size || undefined,
     }
 
     const postType = kindToPostType(kind)
@@ -556,6 +582,30 @@ export function createServer() {
         (x): x is string => typeof x === 'string'
       )
     }
+    if (typeof body.champion_team === 'string' && body.champion_team.trim()) {
+      payload.champion_team = body.champion_team.trim()
+    }
+    if (typeof body.series_score === 'string' && body.series_score.trim()) {
+      payload.series_score = body.series_score.trim()
+    }
+    if (typeof body.award_name === 'string' && body.award_name.trim()) {
+      payload.award_name = body.award_name.trim()
+    }
+    if (typeof body.recipient_name === 'string' && body.recipient_name.trim()) {
+      payload.recipient_name = body.recipient_name.trim()
+    }
+    if (typeof body.recipient_stats === 'string' && body.recipient_stats.trim()) {
+      payload.recipient_stats = body.recipient_stats.trim()
+    }
+    if (typeof body.game_count === 'string' && body.game_count.trim()) {
+      payload.game_count = body.game_count.trim()
+    }
+    if (typeof body.start_date === 'string' && body.start_date.trim()) {
+      payload.start_date = body.start_date.trim()
+    }
+    if (typeof body.bracket_size === 'string' && body.bracket_size.trim()) {
+      payload.bracket_size = body.bracket_size.trim()
+    }
 
     const draft = body.draft === true
     const explicitSchedule =
@@ -603,6 +653,18 @@ export function createServer() {
   })
   app.post('/api/announcements/results', authMiddleware, async c => {
     return handleAnnouncementPost(c, 'results')
+  })
+  app.post('/api/announcements/playoffs', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'playoffs')
+  })
+  app.post('/api/announcements/champion', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'champion')
+  })
+  app.post('/api/announcements/awards', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'awards')
+  })
+  app.post('/api/announcements/schedule', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'schedule')
   })
 
   app.get('/api/studio/suggestions', authMiddleware, async c => {

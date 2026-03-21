@@ -31,7 +31,7 @@ export type ScheduledPostPayload = {
     record: string
     team_logo?: string | null
   }>
-  /** announcement_registration | announcement_draft | announcement_results */
+  /** announcement_registration | announcement_draft | announcement_results | announcement_playoffs | announcement_champion | announcement_awards | announcement_schedule */
   season?: string
   season_id?: string
   draft_date?: string
@@ -42,6 +42,14 @@ export type ScheduledPostPayload = {
   vibe?: string
   headline_override?: string
   result_lines?: string[]
+  champion_team?: string
+  series_score?: string
+  award_name?: string
+  recipient_name?: string
+  recipient_stats?: string
+  game_count?: string
+  start_date?: string
+  bracket_size?: string
   [key: string]: unknown
 }
 

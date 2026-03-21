@@ -580,6 +580,27 @@ function announcementAccentColors(vibe: string): {
         ctaBg: '#ff3d5a',
         ctaText: '#ffffff',
       }
+    case 'broadcast':
+      return {
+        headline: '#ffffff',
+        secondary: '#4ea8de',
+        ctaBg: '#c42032',
+        ctaText: '#ffffff',
+      }
+    case 'championship':
+      return {
+        headline: '#fff8e1',
+        secondary: '#ffd700',
+        ctaBg: '#ffd700',
+        ctaText: '#1a1a1a',
+      }
+    case 'cartoon_modern':
+      return {
+        headline: '#ffffff',
+        secondary: '#00d4ff',
+        ctaBg: '#ff3366',
+        ctaText: '#ffffff',
+      }
     default:
       return {
         headline: '#f0fff4',
@@ -627,6 +648,38 @@ async function announcementOverlayTree(
     result_lines: Array.isArray(p.result_lines)
       ? p.result_lines.filter((x): x is string => typeof x === 'string')
       : undefined,
+    champion_team:
+      typeof p.champion_team === 'string' && p.champion_team.trim()
+        ? p.champion_team.trim()
+        : undefined,
+    series_score:
+      typeof p.series_score === 'string' && p.series_score.trim()
+        ? p.series_score.trim()
+        : undefined,
+    award_name:
+      typeof p.award_name === 'string' && p.award_name.trim()
+        ? p.award_name.trim()
+        : undefined,
+    recipient_name:
+      typeof p.recipient_name === 'string' && p.recipient_name.trim()
+        ? p.recipient_name.trim()
+        : undefined,
+    recipient_stats:
+      typeof p.recipient_stats === 'string' && p.recipient_stats.trim()
+        ? p.recipient_stats.trim()
+        : undefined,
+    game_count:
+      typeof p.game_count === 'string' && p.game_count.trim()
+        ? p.game_count.trim()
+        : undefined,
+    start_date:
+      typeof p.start_date === 'string' && p.start_date.trim()
+        ? p.start_date.trim()
+        : undefined,
+    bracket_size:
+      typeof p.bracket_size === 'string' && p.bracket_size.trim()
+        ? p.bracket_size.trim()
+        : undefined,
   }
 
   const vibeKey = normalizeVibe(payload.vibe)
@@ -634,7 +687,7 @@ async function announcementOverlayTree(
   const headline = defaultHeadline(kind, payload)
   const lines = secondaryLines(kind, payload)
   const leagueSrc = await fetchImageDataUrl(resolvedLogoUrl, 120)
-  const ctaLabel = ctaDisplayLabel(payload)
+  const ctaLabel = ctaDisplayLabel(kind, payload)
   const urlLine = ctaRaw.trim() ? (ctaRaw.includes('://') ? ctaRaw : `https://${ctaRaw}`) : ''
 
   const lineEls = lines.map(line =>

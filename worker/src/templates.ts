@@ -74,6 +74,38 @@ export async function resolvePostBody(post: ScheduledPost): Promise<string> {
       result_lines: Array.isArray(p.result_lines)
         ? p.result_lines.filter((x): x is string => typeof x === 'string')
         : undefined,
+      champion_team:
+        typeof p.champion_team === 'string' && p.champion_team.trim()
+          ? p.champion_team.trim()
+          : undefined,
+      series_score:
+        typeof p.series_score === 'string' && p.series_score.trim()
+          ? p.series_score.trim()
+          : undefined,
+      award_name:
+        typeof p.award_name === 'string' && p.award_name.trim()
+          ? p.award_name.trim()
+          : undefined,
+      recipient_name:
+        typeof p.recipient_name === 'string' && p.recipient_name.trim()
+          ? p.recipient_name.trim()
+          : undefined,
+      recipient_stats:
+        typeof p.recipient_stats === 'string' && p.recipient_stats.trim()
+          ? p.recipient_stats.trim()
+          : undefined,
+      game_count:
+        typeof p.game_count === 'string' && p.game_count.trim()
+          ? p.game_count.trim()
+          : undefined,
+      start_date:
+        typeof p.start_date === 'string' && p.start_date.trim()
+          ? p.start_date.trim()
+          : undefined,
+      bracket_size:
+        typeof p.bracket_size === 'string' && p.bracket_size.trim()
+          ? p.bracket_size.trim()
+          : undefined,
     }
     return buildFinalCaption(post, buildAnnouncementCaption(kind, payload))
   }

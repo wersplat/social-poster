@@ -553,6 +553,10 @@ function renderAnnounceForm() {
             <option value="announcement_registration">announcement registration (AI — prefer Studio)</option>
             <option value="announcement_draft">announcement draft (AI — prefer Studio)</option>
             <option value="announcement_results">announcement results (AI — prefer Studio)</option>
+            <option value="announcement_playoffs">announcement playoffs (AI — prefer Studio)</option>
+            <option value="announcement_champion">announcement champion (AI — prefer Studio)</option>
+            <option value="announcement_awards">announcement awards (AI — prefer Studio)</option>
+            <option value="announcement_schedule">announcement schedule (AI — prefer Studio)</option>
             <option value="registrations_open">registrations open</option>
             <option value="schedule_drop">schedule drop</option>
             <option value="combine_reminder">combine reminder</option>
@@ -581,7 +585,7 @@ function renderAnnounceForm() {
 
       <p style="color:var(--muted);font-size:12px;margin-top:10px">
         For <strong>AI announcement graphics</strong>, use <strong>Studio → Announcements</strong> or
-        <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">POST /api/announcements/{registration|draft|results}</code>
+        <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">POST /api/announcements/{registration|draft|results|playoffs|champion|awards|schedule}</code>
         with <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">payload_json</code> fields (<code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">season</code>, <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">cta</code>, etc.).
       </p>
       <div class="actions" style="margin-top:16px">
@@ -888,6 +892,14 @@ async function submitStudioPost() {
       league_id: leagueId,
       vibe: document.getElementById('studio-ann-vibe').value,
       headline_override: document.getElementById('studio-ann-headline').value.trim() || undefined,
+      bracket_size: document.getElementById('studio-ann-bracket_size').value.trim() || undefined,
+      start_date: document.getElementById('studio-ann-start_date').value.trim() || undefined,
+      game_count: document.getElementById('studio-ann-game_count').value.trim() || undefined,
+      champion_team: document.getElementById('studio-ann-champion_team').value.trim() || undefined,
+      series_score: document.getElementById('studio-ann-series_score').value.trim() || undefined,
+      award_name: document.getElementById('studio-ann-award_name').value.trim() || undefined,
+      recipient_name: document.getElementById('studio-ann-recipient_name').value.trim() || undefined,
+      recipient_stats: document.getElementById('studio-ann-recipient_stats').value.trim() || undefined,
       result_lines: result_lines.length ? result_lines : undefined,
       caption: caption || undefined,
       hashtags,
@@ -1105,6 +1117,10 @@ async function loadStudioPane() {
           <option value="registration">registration</option>
           <option value="draft">draft</option>
           <option value="results">results</option>
+          <option value="playoffs">playoffs</option>
+          <option value="champion">champion</option>
+          <option value="awards">awards</option>
+          <option value="schedule">schedule</option>
         </select>
       </label>
       <label class="field">
@@ -1113,6 +1129,9 @@ async function loadStudioPane() {
           <option value="esports_2k">esports_2k</option>
           <option value="luxury">luxury</option>
           <option value="hype">hype</option>
+          <option value="broadcast">broadcast</option>
+          <option value="championship">championship</option>
+          <option value="cartoon_modern">cartoon modern</option>
         </select>
       </label>
       <label class="field form-grid full"><span>season (display)</span><input id="studio-ann-season" placeholder="Season 2"></label>
@@ -1121,12 +1140,23 @@ async function loadStudioPane() {
       <label class="field"><span>combine_dates</span><input id="studio-ann-combine" placeholder="March 27–29"></label>
       <label class="field"><span>prize_pool</span><input id="studio-ann-prize" placeholder="$1500"></label>
       <label class="field form-grid full"><span>cta</span><input id="studio-ann-cta" placeholder="lba.gg/signup/player"></label>
-      <label class="field"><span>cta_label</span><input id="studio-ann-cta-label" placeholder="Sign Up Now"></label>
+      <label class="field"><span>cta_label</span><input id="studio-ann-cta-label" placeholder="optional; kind defaults if empty"></label>
       <label class="field form-grid full"><span>league_logo URL</span><input id="studio-ann-league-logo"></label>
       <label class="field form-grid full"><span>headline_override</span><input id="studio-ann-headline" placeholder="optional"></label>
     </div>
+    <p style="color:var(--muted);font-size:11px;margin:12px 0 6px;text-transform:none;letter-spacing:0">Extras for playoffs / champion / awards / schedule (optional)</p>
+    <div class="form-grid">
+      <label class="field"><span>bracket_size</span><input id="studio-ann-bracket_size" placeholder="8 teams"></label>
+      <label class="field"><span>start_date</span><input id="studio-ann-start_date" placeholder="Apr 12"></label>
+      <label class="field"><span>game_count</span><input id="studio-ann-game_count" placeholder="e.g. 82"></label>
+      <label class="field"><span>champion_team</span><input id="studio-ann-champion_team" placeholder="Team name"></label>
+      <label class="field"><span>series_score</span><input id="studio-ann-series_score" placeholder="4-2"></label>
+      <label class="field form-grid full"><span>award_name</span><input id="studio-ann-award_name" placeholder="Most Valuable Player"></label>
+      <label class="field"><span>recipient_name</span><input id="studio-ann-recipient_name"></label>
+      <label class="field form-grid full"><span>recipient_stats</span><input id="studio-ann-recipient_stats" placeholder="Stat line"></label>
+    </div>
     <label class="field form-grid full" style="margin-top:10px">
-      <span>result_lines (results only, one per line)</span>
+      <span>result_lines (results kind, one per line)</span>
       <textarea id="studio-ann-result-lines" rows="3" placeholder="Champion: …"></textarea>
     </label>
     <label class="field" style="flex-direction:row;align-items:center;gap:10px;margin-top:10px">
