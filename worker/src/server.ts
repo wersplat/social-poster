@@ -2,12 +2,79 @@ import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { Hono } from 'hono'
+import { getCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
+import { TwitterApi } from 'twitter-api-v2'
+import {
+  generateBackgroundForPost,
+  isAiImagePostType,
+} from './ai/generateBackground.js'
 import { supabase } from './db.js'
+import { isR2Configured } from './r2.js'
+import { planPosts } from './planning/planPosts.js'
+import { fetchStudioSuggestions } from './planning/queries.js'
+import {
+  getXAppConsumerKeys,
+  invalidateXClientCacheForLeague,
+} from './publisher.js'
+import {
+  signXOAuthPayload,
+  verifyXOAuthCookie,
+  xOAuthCookieHeader,
+  type XOAuthPendingPayload,
+} from './xOAuth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET ?? 'changeme'
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(s: string): boolean {
+  return UUID_RE.test(s.trim())
+}
+
+function getR2ConfigError(): string | null {
+  const missing: string[] = []
+  if (!process.env.R2_ACCESS_KEY_ID?.trim()) missing.push('R2_ACCESS_KEY_ID')
+  if (!process.env.R2_SECRET_ACCESS_KEY?.trim()) missing.push('R2_SECRET_ACCESS_KEY')
+  if (!process.env.R2_BUCKET?.trim()) missing.push('R2_BUCKET')
+  if (!process.env.R2_PUBLIC_BASE_URL?.trim()) missing.push('R2_PUBLIC_BASE_URL')
+  const hasEndpoint = !!process.env.R2_ENDPOINT?.trim()
+  const hasAccount = !!process.env.R2_ACCOUNT_ID?.trim()
+  if (!hasEndpoint && !hasAccount) {
+    missing.push('R2_ENDPOINT or R2_ACCOUNT_ID')
+  }
+  if (missing.length === 0) return null
+  return `R2 is not fully configured. Missing or empty env: ${missing.join(', ')}. Same shape as lba-social: optional R2_ENDPOINT, or R2_ACCOUNT_ID to build the S3 endpoint; R2_BUCKET = bucket name or bucket/prefix.`
+}
+
+function getAiImageApiConfigError(): string | null {
+  const p = process.env.AI_IMAGE_PROVIDER?.toLowerCase().trim()
+  const useGemini = p === 'gemini'
+  if (useGemini) {
+    if (!process.env.GEMINI_API_KEY?.trim()) {
+      return 'AI_IMAGE_PROVIDER=gemini but GEMINI_API_KEY is missing or empty.'
+    }
+    return null
+  }
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    return 'OPENAI_API_KEY is missing or empty (default image provider is OpenAI). For Imagen, set AI_IMAGE_PROVIDER=gemini and GEMINI_API_KEY.'
+  }
+  return null
+}
+
+function oauthCallbackUrl(c: { req: { url: string } }): string {
+  const explicit = process.env.X_OAUTH_CALLBACK_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+  return new URL(c.req.url).origin + '/api/x/oauth/callback'
+}
+
+function adminRedirectUrl(c: { req: { url: string } }, query: string): string {
+  const origin = new URL(c.req.url).origin
+  return `${origin}/admin${query ? `?${query}` : ''}`
+}
 
 function normalizeTeamEmbed(v: unknown): { name: string } | null {
   if (v == null) return null
@@ -69,7 +136,8 @@ export function createServer() {
       .select(
         `
         id, post_type, status, caption, hashtags, scheduled_for,
-        bg_image_url, x_post_id, error, retries, created_at, match_id
+        bg_image_url, x_post_id, error, retries, created_at, match_id,
+        payload_json
       `
       )
       .in('status', statusFilter)
@@ -165,6 +233,41 @@ export function createServer() {
       }
       patch[key] = body[key]
     }
+
+    if ('bg_image_url' in body) {
+      const v = body.bg_image_url
+      if (v === null || v === '') patch.bg_image_url = null
+      else if (typeof v === 'string') patch.bg_image_url = v.trim() || null
+    }
+
+    const pp = body.payload_patch
+    if (
+      pp !== null &&
+      pp !== undefined &&
+      typeof pp === 'object' &&
+      !Array.isArray(pp)
+    ) {
+      const { data: row, error: selErr } = await supabase
+        .from('scheduled_posts')
+        .select('payload_json')
+        .eq('id', id)
+        .single()
+      if (selErr) return c.json({ error: selErr.message }, 500)
+      const raw = row?.payload_json
+      const cur: Record<string, unknown> =
+        raw !== null &&
+        raw !== undefined &&
+        typeof raw === 'object' &&
+        !Array.isArray(raw)
+          ? { ...(raw as Record<string, unknown>) }
+          : {}
+      const incoming = pp as Record<string, unknown>
+      for (const k of ['generate_image', 'style_pack', 'style_version'] as const) {
+        if (k in incoming) cur[k] = incoming[k]
+      }
+      patch.payload_json = cur
+    }
+
     const { data, error } = await supabase
       .from('scheduled_posts')
       .update(patch)
@@ -192,6 +295,120 @@ export function createServer() {
       .single()
     if (error) return c.json({ error: error.message }, 500)
     return c.json(data)
+  })
+
+  app.post('/api/posts/:id/generate-image', authMiddleware, async c => {
+    const id = c.req.param('id')
+    let force = false
+    try {
+      const b = await c.req.json()
+      if (b && typeof b === 'object' && b.force === true) force = true
+    } catch {
+      /* empty body */
+    }
+
+    const { data: row, error: selErr } = await supabase
+      .from('scheduled_posts')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (selErr || !row) return c.json({ error: 'Not found' }, 404)
+
+    const surfaces = row.publish_surface as string[] | null
+    if (!surfaces?.includes('x'))
+      return c.json({ error: 'Not an X post' }, 400)
+
+    if (!isAiImagePostType(row.post_type as string)) {
+      return c.json(
+        { error: 'Post type does not support AI background' },
+        400
+      )
+    }
+
+    const p =
+      row.payload_json &&
+      typeof row.payload_json === 'object' &&
+      !Array.isArray(row.payload_json)
+        ? { ...(row.payload_json as Record<string, unknown>) }
+        : {}
+
+    if (!force && p.generate_image === false) {
+      return c.json(
+        {
+          error:
+            'generate_image is false; send JSON body { "force": true } to override',
+        },
+        400
+      )
+    }
+
+    const r2Err = getR2ConfigError()
+    if (r2Err) {
+      console.warn('[generate-image]', r2Err)
+      return c.json({ error: r2Err, code: 'r2_not_configured' }, 422)
+    }
+    const aiErr = getAiImageApiConfigError()
+    if (aiErr) {
+      console.warn('[generate-image]', aiErr)
+      return c.json({ error: aiErr, code: 'ai_api_not_configured' }, 422)
+    }
+
+    const stylePack =
+      typeof p.style_pack === 'string' && p.style_pack.trim()
+        ? p.style_pack.trim()
+        : 'regular'
+    const styleVersion =
+      typeof p.style_version === 'number' && Number.isFinite(p.style_version)
+        ? p.style_version
+        : 1
+
+    try {
+      const { imageUrl, prompt } = await generateBackgroundForPost({
+        postType: row.post_type as string,
+        stylePack,
+        styleVersion,
+        payload: p,
+      })
+      const nextPayload = {
+        ...p,
+        ai_bg_prompt: prompt,
+        ai_bg_generated_at: new Date().toISOString(),
+      }
+      const { data: updated, error: upErr } = await supabase
+        .from('scheduled_posts')
+        .update({
+          bg_image_url: imageUrl,
+          payload_json: nextPayload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      if (upErr) {
+        console.error('[generate-image] supabase update failed:', upErr.message)
+        return c.json({ error: upErr.message }, 500)
+      }
+      return c.json(updated)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('[generate-image] failed:', e)
+      return c.json({ error: msg }, 500)
+    }
+  })
+
+  app.get('/api/studio/suggestions', authMiddleware, async c => {
+    const leagueId = (c.req.query('league_id') ?? '').trim()
+    if (!leagueId || !isUuid(leagueId)) {
+      return c.json({ error: 'league_id query param must be a valid UUID' }, 400)
+    }
+    try {
+      const data = await fetchStudioSuggestions(leagueId)
+      return c.json(data)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      return c.json({ error: message }, 500)
+    }
   })
 
   app.post('/api/posts', authMiddleware, async c => {
@@ -224,21 +441,71 @@ export function createServer() {
         ? 'scheduled'
         : 'pending'
 
+    const payloadRaw = body.payload_json
+    const payload_json: Record<string, unknown> =
+      payloadRaw !== null &&
+      payloadRaw !== undefined &&
+      typeof payloadRaw === 'object' &&
+      !Array.isArray(payloadRaw)
+        ? { ...(payloadRaw as Record<string, unknown>) }
+        : {}
+
+    if (body.generate_image === false) payload_json.generate_image = false
+    if (body.generate_image === true) payload_json.generate_image = true
+
+    const sp = body.style_pack
+    if (typeof sp === 'string' && sp.trim()) payload_json.style_pack = sp.trim()
+
+    const sv = body.style_version
+    if (typeof sv === 'number' && Number.isFinite(sv)) payload_json.style_version = sv
+
+    const defaultLeague = process.env.LEAGUE_ID?.trim()
+    if (defaultLeague && typeof payload_json.league_id !== 'string') {
+      payload_json.league_id = defaultLeague
+    }
+    const lid = body.league_id
+    if (typeof lid === 'string' && lid.trim()) payload_json.league_id = lid.trim()
+
+    const mid = body.match_id
+    const match_id =
+      typeof mid === 'string' && mid.trim() ? mid.trim() : null
+
+    const insertRow: Record<string, unknown> = {
+      post_type: type,
+      status,
+      caption: caption || null,
+      hashtags: tags.length ? tags : null,
+      scheduled_for: scheduledFor,
+      publish_surface: ['x'],
+      payload_json,
+      match_id,
+    }
+
+    const bg = body.bg_image_url
+    if (typeof bg === 'string' && bg.trim()) insertRow.bg_image_url = bg.trim()
+
+    const assets = body.asset_urls
+    if (Array.isArray(assets) && assets.every((u): u is string => typeof u === 'string')) {
+      insertRow.asset_urls = assets
+    }
+
     const { data, error } = await supabase
       .from('scheduled_posts')
-      .insert({
-        post_type: type,
-        status,
-        caption: caption || null,
-        hashtags: tags.length ? tags : null,
-        scheduled_for: scheduledFor,
-        publish_surface: ['x'],
-        payload_json: {},
-      })
+      .insert(insertRow)
       .select()
       .single()
     if (error) return c.json({ error: error.message }, 500)
     return c.json(data, 201)
+  })
+
+  app.post('/api/jobs/plan', authMiddleware, async c => {
+    try {
+      const result = await planPosts()
+      return c.json(result)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      return c.json({ error: message }, 500)
+    }
   })
 
   app.get('/api/policies', authMiddleware, async c => {
@@ -281,6 +548,129 @@ export function createServer() {
     })
 
     return c.json({ leagues: enriched, policies: policies ?? [] })
+  })
+
+  app.post('/api/x/oauth/start', authMiddleware, async c => {
+    let body: Record<string, unknown>
+    try {
+      body = await c.req.json()
+    } catch {
+      return c.json({ error: 'Invalid JSON' }, 400)
+    }
+    const leagueId =
+      typeof body.league_id === 'string' ? body.league_id.trim() : ''
+    if (!leagueId) return c.json({ error: 'league_id required' }, 400)
+
+    const callbackUrl = oauthCallbackUrl(c)
+    try {
+      const { appKey, appSecret } = getXAppConsumerKeys()
+      const client = new TwitterApi({ appKey, appSecret })
+      const authLink = await client.generateAuthLink(callbackUrl, {
+        linkMode: 'authorize',
+      })
+      const payload: XOAuthPendingPayload = {
+        league_id: leagueId,
+        oauth_token: authLink.oauth_token,
+        oauth_token_secret: authLink.oauth_token_secret,
+        exp: Date.now() + 14 * 60 * 1000,
+      }
+      const signed = signXOAuthPayload(payload)
+      return c.json(
+        { url: authLink.url },
+        200,
+        xOAuthCookieHeader(signed, false)
+      )
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      return c.json({ error: message }, 500)
+    }
+  })
+
+  app.get('/api/x/oauth/callback', async c => {
+    const oauthToken = c.req.query('oauth_token') ?? ''
+    const oauthVerifier = c.req.query('oauth_verifier') ?? ''
+    const clear = xOAuthCookieHeader('', true)
+    const baseHeaders = { 'Set-Cookie': clear['Set-Cookie'] }
+
+    if (!oauthVerifier) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: adminRedirectUrl(c, 'x_oauth=denied'),
+          ...baseHeaders,
+        },
+      })
+    }
+
+    const raw = getCookie(c, 'x_oauth_pending')
+    const pending = verifyXOAuthCookie(raw)
+    if (!pending || pending.oauth_token !== oauthToken) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: adminRedirectUrl(c, 'x_oauth=invalid'),
+          ...baseHeaders,
+        },
+      })
+    }
+
+    try {
+      const { appKey, appSecret } = getXAppConsumerKeys()
+      const client = new TwitterApi({
+        appKey,
+        appSecret,
+        accessToken: oauthToken,
+        accessSecret: pending.oauth_token_secret,
+      })
+      const { accessToken, accessSecret } = await client.login(oauthVerifier)
+
+      const leagueId = pending.league_id
+      await supabase
+        .from('webhook_config')
+        .delete()
+        .eq('league_id', leagueId)
+        .in('key', ['x_access_token', 'x_access_secret'])
+
+      const { error } = await supabase.from('webhook_config').insert([
+        { league_id: leagueId, key: 'x_access_token', value: accessToken },
+        { league_id: leagueId, key: 'x_access_secret', value: accessSecret },
+      ])
+
+      if (error) {
+        const detail = error.message.slice(0, 200)
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: adminRedirectUrl(
+              c,
+              `x_oauth=db_error&detail=${encodeURIComponent(detail)}`
+            ),
+            ...baseHeaders,
+          },
+        })
+      }
+
+      invalidateXClientCacheForLeague(leagueId)
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: adminRedirectUrl(c, 'x_oauth=ok'),
+          ...baseHeaders,
+        },
+      })
+    } catch (e: unknown) {
+      const msg = (e instanceof Error ? e.message : String(e)).slice(0, 200)
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: adminRedirectUrl(
+            c,
+            `x_oauth=token_error&detail=${encodeURIComponent(msg)}`
+          ),
+          ...baseHeaders,
+        },
+      })
+    }
   })
 
   app.patch('/api/policies/:leagueId', authMiddleware, async c => {

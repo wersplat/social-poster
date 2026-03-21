@@ -3,6 +3,34 @@ export type ScheduledPostPayload = {
   body?: string
   box_score_url?: string
   league_id?: string
+  /** When false, poller skips AI background generation for image post types. */
+  generate_image?: boolean
+  style_pack?: string
+  style_version?: number
+  ai_bg_prompt?: string
+  ai_bg_generated_at?: string
+  /** final_score */
+  match_id?: string
+  home_team?: string
+  away_team?: string
+  home_score?: number
+  away_score?: number
+  date?: string
+  boxscore_url?: string | null
+  /** player_of_game */
+  player_name?: string
+  stat_line?: string
+  team_name?: string
+  team_logo?: string | null
+  league_logo?: string | null
+  /** weekly_power_rankings */
+  week_label?: string
+  teams?: Array<{
+    rank: number
+    team_name: string
+    record: string
+    team_logo?: string | null
+  }>
   [key: string]: unknown
 }
 

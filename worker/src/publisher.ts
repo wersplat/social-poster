@@ -6,7 +6,7 @@ import {
 import { supabase } from './db.js'
 import type { ScheduledPost } from './types.js'
 
-function requireAppKeys(): { appKey: string; appSecret: string } {
+export function getXAppConsumerKeys(): { appKey: string; appSecret: string } {
   const appKey = process.env.X_API_KEY?.trim()
   const appSecret = process.env.X_API_SECRET?.trim()
   if (!appKey || !appSecret) {
@@ -48,12 +48,15 @@ function formatXApiError(err: unknown): string {
 
 const xClientCache = new Map<string, TwitterApi>()
 
+/** Call after updating webhook_config X tokens for a league so the next post picks up new credentials. */
+export function invalidateXClientCacheForLeague(leagueId: string): void {
+  xClientCache.delete(leagueId)
+}
+
 /** Log once at boot if default user credentials are missing (per-league-only setups still need app keys). */
 export function warnXAuthOnBoot(): void {
-  const { appKey, appSecret } = {
-    appKey: process.env.X_API_KEY?.trim(),
-    appSecret: process.env.X_API_SECRET?.trim(),
-  }
+  const appKey = process.env.X_API_KEY?.trim()
+  const appSecret = process.env.X_API_SECRET?.trim()
   if (!appKey || !appSecret) {
     console.warn(
       '[x] X_API_KEY / X_API_SECRET missing — posting to X will fail until app Consumer Key & Secret are set.'
@@ -85,7 +88,7 @@ export async function getXClient(leagueId: string): Promise<TwitterApi | null> {
   const secret = get('x_access_secret')
   if (!token?.trim() || !secret?.trim()) return null
 
-  const { appKey, appSecret } = requireAppKeys()
+  const { appKey, appSecret } = getXAppConsumerKeys()
   const client = new TwitterApi({
     appKey,
     appSecret,
@@ -114,7 +117,7 @@ export async function publishToX(post: ScheduledPost, body: string): Promise<str
 
   const client = leagueId ? await getXClient(leagueId) : null
 
-  const { appKey, appSecret } = requireAppKeys()
+  const { appKey, appSecret } = getXAppConsumerKeys()
   let twitter: TwitterApi
   if (client) {
     twitter = client

@@ -1,8 +1,64 @@
+import {
+  generateBackgroundForPost,
+  isAiImagePostType,
+} from './ai/generateBackground.js'
 import { generateGameCard } from './card-generator.js'
 import { supabase } from './db.js'
 import { publishToX } from './publisher.js'
+import { isR2Configured } from './r2.js'
 import { resolvePostBody } from './templates.js'
 import type { ScheduledPost } from './types.js'
+
+function shouldGenerateAiBg(post: ScheduledPost): boolean {
+  if (!isAiImagePostType(post.post_type)) return false
+  if (post.bg_image_url) return false
+  if (post.payload_json.generate_image === false) return false
+  return true
+}
+
+async function maybeGenerateAiBackground(
+  working: ScheduledPost
+): Promise<ScheduledPost> {
+  if (!shouldGenerateAiBg(working)) return working
+  if (!isR2Configured()) {
+    console.warn('[poller] AI image skipped: R2 not configured')
+    return working
+  }
+  const p = working.payload_json as Record<string, unknown>
+  const stylePack =
+    typeof p.style_pack === 'string' && p.style_pack.trim()
+      ? p.style_pack.trim()
+      : 'regular'
+  const styleVersion =
+    typeof p.style_version === 'number' && Number.isFinite(p.style_version)
+      ? p.style_version
+      : 1
+  try {
+    const { imageUrl, prompt } = await generateBackgroundForPost({
+      postType: working.post_type,
+      stylePack,
+      styleVersion,
+      payload: p,
+    })
+    const nextPayload = {
+      ...working.payload_json,
+      ai_bg_prompt: prompt,
+      ai_bg_generated_at: new Date().toISOString(),
+    }
+    await supabase
+      .from('scheduled_posts')
+      .update({ bg_image_url: imageUrl, payload_json: nextPayload })
+      .eq('id', working.id)
+    return {
+      ...working,
+      bg_image_url: imageUrl,
+      payload_json: nextPayload,
+    }
+  } catch (e) {
+    console.warn('[poller] AI background failed, continuing text-only:', e)
+    return working
+  }
+}
 
 async function processPendingPosts() {
   const now = new Date().toISOString()
@@ -45,7 +101,7 @@ async function processPendingPosts() {
     if (!claimed?.length) continue
 
     try {
-      let working = { ...post, status: 'processing' as const }
+      let working: ScheduledPost = { ...post, status: 'processing' }
 
       if (
         working.post_type === 'verified_game' &&
@@ -63,6 +119,8 @@ async function processPendingPosts() {
           console.warn('[poller] card gen failed, continuing text-only:', e)
         }
       }
+
+      working = await maybeGenerateAiBackground(working)
 
       const body = await resolvePostBody(working)
       const updates: Record<string, unknown> = {

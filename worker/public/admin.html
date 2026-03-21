@@ -32,7 +32,16 @@
                         font-size: 14px; width: 280px; }
   #login-screen .btn-primary { width: 100%; justify-content: center; padding: 10px 28px; font-size: 14px; }
 
-  #app { display: none; max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+  #app { display: none; max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
+
+  .studio-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 12px 0; }
+  .studio-table th, .studio-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .studio-table th { color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: .4px; }
+  .studio-subtabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .studio-subtabs .tab { border-bottom: 2px solid transparent; }
+  .studio-type-pane { display: none; }
+  .studio-type-pane.active { display: block; }
+  .img-meta { font-size: 11px; color: var(--muted); margin: 6px 0; line-height: 1.5; }
 
   header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
   header h1 { font-size: 18px; font-weight: 500; }
@@ -151,12 +160,14 @@
     <div class="tab" data-tab="history">History</div>
     <div class="tab" data-tab="announce">Announce</div>
     <div class="tab" data-tab="policies">Policies</div>
+    <div class="tab" data-tab="studio">Studio</div>
   </div>
 
   <div id="pane-queue"    class="pane active"></div>
   <div id="pane-history"  class="pane"></div>
   <div id="pane-announce" class="pane"></div>
   <div id="pane-policies" class="pane"></div>
+  <div id="pane-studio"   class="pane"></div>
 </div>
 
 <script>
@@ -164,6 +175,15 @@ let TOKEN = ''
 /** @type {Map<string, object>} */
 const postsById = new Map()
 let activeListPane = 'queue'
+
+const AI_IMAGE_POST_TYPES = new Set(['final_score', 'player_of_game', 'weekly_power_rankings'])
+const STUDIO_STYLE_PACKS = [
+  'regular', 'playoffs', 'rivalry', 'sponsor_safe',
+  'regular_season_launch', 'stage_combine_playground',
+]
+/** @type {{ final_score_matches: any[], player_of_game: any[], power_rankings: { teams: any[], league_logo?: string } } | null} */
+let studioSuggestions = null
+let studioPaneReady = false
 
 async function login() {
   const secret = document.getElementById('secret-input').value.trim()
@@ -175,10 +195,12 @@ async function login() {
     return
   }
   TOKEN = secret
+  try { sessionStorage.setItem('sp_admin', TOKEN) } catch (_) {}
   document.getElementById('login-screen').style.display = 'none'
   document.getElementById('app').style.display = 'block'
   loadQueue()
   loadPolicies()
+  showOAuthReturnBanner()
 }
 
 document.getElementById('login-form').addEventListener('submit', e => {
@@ -191,8 +213,82 @@ async function api(path, opts = {}) {
     headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     ...opts
   })
-  if (!res.ok) throw new Error(await res.text())
+  if (!res.ok) {
+    const t = await res.text()
+    try {
+      const j = JSON.parse(t)
+      if (j?.error) throw new Error(String(j.error))
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        const proxyHint =
+          res.status === 502 || res.status === 504
+            ? ' If this appeared after a long wait, your host may have timed out the request (image generation often needs 60–120s). Try locally or raise the deployment HTTP timeout.'
+            : ''
+        throw new Error(
+          (t && t.length && t.length < 500 ? t.trim() : `HTTP ${res.status}`) + proxyHint
+        )
+      }
+      throw e
+    }
+    throw new Error(t)
+  }
   return res.json()
+}
+
+function showOAuthReturnBanner() {
+  const p = new URLSearchParams(window.location.search)
+  const st = p.get('x_oauth')
+  if (!st) return
+  const detail = p.get('detail')
+  const lines = {
+    ok: 'X account linked for this league.',
+    denied: 'X authorization was cancelled.',
+    invalid: 'OAuth session expired or invalid — try “Link X” again.',
+    db_error: 'Saved tokens failed: ' + (detail || 'database error'),
+    token_error: 'X token exchange failed: ' + (detail || 'unknown'),
+  }
+  const msg = lines[st] || st
+  const el = document.createElement('div')
+  el.style.cssText = 'position:fixed;top:16px;right:16px;max-width:min(420px,92vw);padding:12px 14px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);border:1px solid var(--border);background:var(--surface);color:var(--text)'
+  el.style.borderLeft = st === 'ok' ? '3px solid var(--green)' : '3px solid var(--amber)'
+  el.textContent = msg
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 8000)
+  p.delete('x_oauth')
+  p.delete('detail')
+  const q = p.toString()
+  window.history.replaceState({}, '', q ? `${window.location.pathname}?${q}` : window.location.pathname)
+}
+
+async function bootstrapSession() {
+  let saved = ''
+  try { saved = sessionStorage.getItem('sp_admin') || '' } catch (_) {}
+  if (!saved) return
+  const res = await fetch('/api/posts?mode=queue', {
+    headers: { Authorization: `Bearer ${saved}` }
+  })
+  if (res.status === 401) {
+    try { sessionStorage.removeItem('sp_admin') } catch (_) {}
+    return
+  }
+  TOKEN = saved
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  loadQueue()
+  loadPolicies()
+  showOAuthReturnBanner()
+}
+
+async function linkXAccount(leagueId) {
+  const res = await fetch('/api/x/oauth/start', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ league_id: leagueId })
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || res.statusText)
+  if (!data.url) throw new Error('No redirect URL from server')
+  window.location.href = data.url
 }
 
 function showTab(name) {
@@ -206,6 +302,7 @@ function showTab(name) {
   else if (name === 'history') { activeListPane = 'history'; loadHistory() }
   else if (name === 'announce') renderAnnounceForm()
   else if (name === 'policies') loadPolicies()
+  else if (name === 'studio') loadStudioPane()
 }
 
 document.getElementById('tabs').addEventListener('click', e => {
@@ -267,6 +364,18 @@ function renderPostCard(post, pane) {
     ? escCaption
     : '<span class="empty">Body will be built by worker from match data</span>'
 
+  const payload = post.payload_json && typeof post.payload_json === 'object' ? post.payload_json : {}
+  const isAiImg = AI_IMAGE_POST_TYPES.has(post.post_type)
+  const canGenImg = isAiImg && post.status !== 'published'
+  const genLabel = post.bg_image_url ? 'Regenerate image' : 'Generate image'
+  const imgMeta = isAiImg
+    ? `<div class="img-meta">Style: <strong>${escapeHtml(String(payload.style_pack ?? 'regular'))}</strong> · AI bg: ${payload.generate_image === false ? 'off' : 'on'}${
+        payload.ai_bg_generated_at
+          ? ` · Last gen: ${escapeHtml(new Date(payload.ai_bg_generated_at).toLocaleString())}`
+          : ''
+      }</div>`
+    : ''
+
   card.innerHTML = `
     <div class="card-row" style="margin-bottom:10px">
       <div class="card-meta">
@@ -279,14 +388,16 @@ function renderPostCard(post, pane) {
         ${post.x_post_id ? `<a class="x-link" href="https://x.com/i/web/status/${escapeHtml(post.x_post_id)}" target="_blank" rel="noopener">View on X ↗</a>` : ''}
       </div>
     </div>
-
+    ${imgMeta}
     ${post.bg_image_url ? `<img class="preview-img" src="${escapeHtml(post.bg_image_url)}" alt="card">` : ''}
 
     <div class="view-mode" data-view>
       <div class="caption-box ${captionText ? '' : 'empty'}">${viewBody}</div>
       <div class="actions">
         <button type="button" class="btn btn-ghost btn-sm" data-action="edit" data-id="${escapeHtml(post.id)}">Edit</button>
+        ${canGenImg ? `<button type="button" class="btn btn-ghost btn-sm" data-action="generate-image" data-id="${escapeHtml(post.id)}">${escapeHtml(genLabel)}</button>` : ''}
         ${['pending','draft'].includes(post.status) ? `<button type="button" class="btn btn-primary btn-sm" data-action="publish-now" data-id="${escapeHtml(post.id)}">Post now</button>` : ''}
+        ${post.status === 'scheduled' ? `<button type="button" class="btn btn-primary btn-sm" data-action="publish-now" data-id="${escapeHtml(post.id)}">Post now</button>` : ''}
         ${post.status === 'failed' ? `
           <button type="button" class="btn btn-amber btn-sm" data-action="publish-now" data-id="${escapeHtml(post.id)}">Retry</button>
           <button type="button" class="btn btn-danger btn-sm" data-action="dismiss" data-id="${escapeHtml(post.id)}">Dismiss</button>
@@ -310,6 +421,40 @@ document.getElementById('app').addEventListener('click', async e => {
     const post = postsById.get(id)
     if (!post) return
     startEdit(card, post)
+  }
+  if (action === 'generate-image') {
+    const btn = e.target.closest('button[data-action="generate-image"]')
+    if (btn) btn.disabled = true
+    try {
+      await api(`/api/posts/${id}/generate-image`, { method: 'POST', body: '{}' })
+      if (pane === 'queue') loadQueue()
+      else loadHistory()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err))
+      if (btn) btn.disabled = false
+    }
+    return
+  }
+  if (action === 'save-image-settings') {
+    const bgEl = document.getElementById(`edit-bg-${id}`)
+    const spEl = document.getElementById(`edit-sp-${id}`)
+    const svEl = document.getElementById(`edit-sv-${id}`)
+    const giEl = document.getElementById(`edit-gi-${id}`)
+    const bg = bgEl ? bgEl.value.trim() : ''
+    await api(`/api/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        bg_image_url: bg || null,
+        payload_patch: {
+          style_pack: spEl ? spEl.value : 'regular',
+          style_version: svEl ? parseInt(svEl.value, 10) || 1 : 1,
+          generate_image: giEl ? giEl.checked : true,
+        },
+      }),
+    })
+    if (pane === 'queue') loadQueue()
+    else loadHistory()
+    return
   }
   if (action === 'publish-now') {
     await api(`/api/posts/${id}/publish-now`, { method: 'POST' })
@@ -344,10 +489,46 @@ function startEdit(card, post) {
   const view = card.querySelector('[data-view]')
   const id = post.id
   const cap = post.caption ?? ''
+  const p = post.payload_json && typeof post.payload_json === 'object' ? post.payload_json : {}
+  const spOpts = STUDIO_STYLE_PACKS.map(sp => {
+    const sel = (p.style_pack || 'regular') === sp ? ' selected' : ''
+    return `<option value="${sp}"${sel}>${escapeHtml(sp.replace(/_/g, ' '))}</option>`
+  }).join('')
+  const giChecked = p.generate_image !== false ? ' checked' : ''
+  const imgBlock = AI_IMAGE_POST_TYPES.has(post.post_type)
+    ? `
+    <p style="margin-top:14px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Image</p>
+    <label class="field">
+      <span>Background image URL</span>
+      <input id="edit-bg-${escapeHtml(id)}" type="url" placeholder="https://…" value="${escapeHtml(post.bg_image_url ?? '')}">
+    </label>
+    <div class="form-grid" style="margin-top:10px">
+      <label class="field">
+        <span>Style pack</span>
+        <select id="edit-sp-${escapeHtml(id)}">${spOpts}</select>
+      </label>
+      <label class="field">
+        <span>Style version</span>
+        <input id="edit-sv-${escapeHtml(id)}" type="number" min="1" step="1" value="${escapeHtml(String(p.style_version ?? 1))}">
+      </label>
+    </div>
+    <label class="field" style="margin-top:10px;flex-direction:row;align-items:center;gap:10px">
+      <input type="checkbox" id="edit-gi-${escapeHtml(id)}"${giChecked}>
+      <span style="font-size:13px;color:var(--text);text-transform:none;letter-spacing:0">Generate AI background when posting</span>
+    </label>
+    <div class="actions" style="margin-top:8px">
+      <button type="button" class="btn btn-ghost btn-sm" data-action="save-image-settings" data-id="${escapeHtml(id)}">Save image settings</button>
+    </div>
+    `
+    : ''
   view.innerHTML = `
-    <textarea id="edit-${id}" rows="5" style="margin:8px 0;font-family:monospace"></textarea>
+    <label class="field">
+      <span>Caption</span>
+      <textarea id="edit-${id}" rows="5" style="margin:4px 0 0;font-family:monospace"></textarea>
+    </label>
     <div class="char-count" id="cc-${id}">${cap.length}/280</div>
-    <div class="actions">
+    ${imgBlock}
+    <div class="actions" style="margin-top:10px">
       <button type="button" class="btn btn-ghost btn-sm" data-action="save-draft" data-id="${escapeHtml(id)}">Save draft</button>
       <button type="button" class="btn btn-primary btn-sm" data-action="save-publish" data-id="${escapeHtml(id)}">Save + post now</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="cancel-edit" data-id="${escapeHtml(id)}">Cancel</button>
@@ -446,14 +627,33 @@ async function loadPolicies() {
   const { leagues, policies } = await api('/api/policies')
 
   el.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <button type="button" class="btn btn-primary" id="run-plan-job">Run plan job</button>
+      <span id="plan-job-status" style="font-size:12px;color:var(--muted)"></span>
+    </div>
     <p style="color:var(--muted);font-size:13px;margin-bottom:20px">
       Controls which leagues auto-post when a game is verified.
-      X credentials are stored in <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">webhook_config</code> per league
+      Use <strong>Link X</strong> to run 3-legged OAuth and store tokens in
+      <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">webhook_config</code>
       (<code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">x_access_token</code> + <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">x_access_secret</code>).
+      Register the callback URL from <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">README</code> in the X developer app.
     </p>
     <div class="card" id="policies-card"></div>
   `
   const card = document.getElementById('policies-card')
+  const planBtn = el.querySelector('#run-plan-job')
+  const planSt = el.querySelector('#plan-job-status')
+  planBtn?.addEventListener('click', async () => {
+    if (planSt) planSt.textContent = 'Running…'
+    try {
+      const r = await api('/api/jobs/plan', { method: 'POST' })
+      const errPart = r.errors?.length ? `; errors: ${r.errors.join('; ')}` : ''
+      if (planSt) planSt.textContent = `Inserted ${r.inserted ?? 0}${errPart}`
+    } catch (e) {
+      if (planSt) planSt.textContent = e instanceof Error ? e.message : String(e)
+    }
+  })
+
   card.innerHTML = (leagues || []).map(lg => {
     const pol = policies.find(p => p.league_id === lg.id) ?? {}
     const autoPost = pol.auto_post_verified_games ?? false
@@ -465,10 +665,13 @@ async function loadPolicies() {
           <strong>${name}</strong>
           <small>${hasCredentials ? 'X tokens in webhook_config' : '⚠ Missing x_access_token / x_access_secret in webhook_config'}</small>
         </div>
-        <label class="toggle">
-          <input type="checkbox" ${autoPost ? 'checked' : ''} data-policy-toggle data-league="${escapeHtml(lg.id)}">
-          <span class="slider"></span>
-        </label>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <button type="button" class="btn btn-ghost btn-sm" data-link-x="${escapeHtml(lg.id)}">Link X</button>
+          <label class="toggle">
+            <input type="checkbox" ${autoPost ? 'checked' : ''} data-policy-toggle data-league="${escapeHtml(lg.id)}">
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
     `
   }).join('') || '<div class="empty-state">No leagues.</div>'
@@ -481,7 +684,424 @@ async function loadPolicies() {
       body: JSON.stringify({ auto_post_verified_games: inp.checked })
     })
   })
+
+  card.addEventListener('click', async ev => {
+    const btn = ev.target.closest('[data-link-x]')
+    if (!btn) return
+    ev.preventDefault()
+    const id = btn.getAttribute('data-link-x')
+    if (!id) return
+    btn.disabled = true
+    try {
+      await linkXAccount(id)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+      btn.disabled = false
+    }
+  })
 }
+
+function formatYmd(iso) {
+  if (!iso) return new Date().toISOString().split('T')[0]
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? new Date().toISOString().split('T')[0] : d.toISOString().split('T')[0]
+}
+
+function setStudioPostType(t) {
+  document.querySelectorAll('#pane-studio .studio-type-pane').forEach(p => {
+    p.classList.toggle('active', p.dataset.studioType === t)
+  })
+  document.querySelectorAll('#studio-subtabs .tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.studioType === t)
+  })
+}
+
+function fillFsForm(m) {
+  document.getElementById('studio-fs-match_id').value = m.id
+  document.getElementById('studio-fs-home_team').value = m.home_team
+  document.getElementById('studio-fs-away_team').value = m.away_team
+  document.getElementById('studio-fs-home_score').value = String(m.score_a ?? 0)
+  document.getElementById('studio-fs-away_score').value = String(m.score_b ?? 0)
+  document.getElementById('studio-fs-date').value = formatYmd(m.played_at || m.verified_at)
+  document.getElementById('studio-fs-home_logo').value = m.home_team_logo || ''
+  document.getElementById('studio-fs-away_logo').value = m.away_team_logo || ''
+  document.getElementById('studio-fs-league_logo').value = m.league_logo || ''
+  document.getElementById('studio-fs-boxscore').value = m.boxscore_url || ''
+}
+
+function renderStudioFsTable() {
+  const wrap = document.getElementById('studio-fs-suggestions')
+  if (!studioSuggestions?.final_score_matches?.length) {
+    wrap.innerHTML = '<p class="img-meta">No verified matches found.</p>'
+    return
+  }
+  const rows = studioSuggestions.final_score_matches.map((m, i) => {
+    const label = `${escapeHtml(m.home_team)} ${m.score_a ?? 0} – ${m.score_b ?? 0} ${escapeHtml(m.away_team)}`
+    const when = escapeHtml(formatYmd(m.played_at || m.verified_at))
+    return `<tr><td>${label}</td><td>${when}</td><td><button type="button" class="btn btn-ghost btn-sm studio-pick-fs" data-idx="${i}">Use</button></td></tr>`
+  }).join('')
+  wrap.innerHTML = `<table class="studio-table"><thead><tr><th>Match</th><th>Date</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+  wrap.querySelectorAll('.studio-pick-fs').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = studioSuggestions.final_score_matches[Number(btn.dataset.idx)]
+      fillFsForm(m)
+    })
+  })
+}
+
+function fillPogForm(m) {
+  document.getElementById('studio-pog-match_id').value = m.match_id
+  document.getElementById('studio-pog-player_name').value = m.player_name
+  document.getElementById('studio-pog-stat_line').value = m.stat_line
+  document.getElementById('studio-pog-team_name').value = m.team_name
+  document.getElementById('studio-pog-date').value = formatYmd(m.played_at)
+  document.getElementById('studio-pog-team_logo').value = m.team_logo || ''
+  document.getElementById('studio-pog-league_logo').value = m.league_logo || ''
+}
+
+function renderStudioPogTable() {
+  const wrap = document.getElementById('studio-pog-suggestions')
+  if (!studioSuggestions?.player_of_game?.length) {
+    wrap.innerHTML = '<p class="img-meta">No MVP matches found.</p>'
+    return
+  }
+  const rows = studioSuggestions.player_of_game.map((m, i) => {
+    const line = `${escapeHtml(m.player_name)} · ${escapeHtml(m.stat_line)} · ${escapeHtml(m.team_name)}`
+    return `<tr><td>${line}</td><td><button type="button" class="btn btn-ghost btn-sm studio-pick-pog" data-idx="${i}">Use</button></td></tr>`
+  }).join('')
+  wrap.innerHTML = `<table class="studio-table"><thead><tr><th>Player of game</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+  wrap.querySelectorAll('.studio-pick-pog').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = studioSuggestions.player_of_game[Number(btn.dataset.idx)]
+      fillPogForm(m)
+    })
+  })
+}
+
+function addPrRow(rank, name, record, logo) {
+  const container = document.getElementById('pr-rows')
+  const div = document.createElement('div')
+  div.className = 'form-grid pr-row'
+  div.style.gridTemplateColumns = '56px 1fr 90px 1fr auto'
+  div.style.alignItems = 'end'
+  div.style.gap = '8px'
+  div.innerHTML = `
+    <label class="field"><span>#</span><input type="number" class="pr-rank" value="${escapeHtml(String(rank))}"></label>
+    <label class="field"><span>Team</span><input type="text" class="pr-name" value="${escapeHtml(name)}"></label>
+    <label class="field"><span>Rec</span><input type="text" class="pr-record" value="${escapeHtml(record)}"></label>
+    <label class="field"><span>Logo URL</span><input type="text" class="pr-logo" value="${escapeHtml(logo)}"></label>
+    <button type="button" class="btn btn-ghost btn-sm pr-remove" style="margin-bottom:4px">×</button>
+  `
+  div.querySelector('.pr-remove').addEventListener('click', () => div.remove())
+  container.appendChild(div)
+}
+
+function importPowerRankings() {
+  const pr = studioSuggestions?.power_rankings
+  if (!pr?.teams?.length) {
+    alert('No power rankings data for this league.')
+    return
+  }
+  document.getElementById('pr-rows').innerHTML = ''
+  pr.teams.forEach(t => {
+    addPrRow(String(t.rank), t.name, t.record, t.team_logo || '')
+  })
+  document.getElementById('studio-pr-league_logo').value = pr.league_logo || ''
+}
+
+let studioLastCreatedId = ''
+
+async function studioGenerateLastCreated() {
+  if (!studioLastCreatedId) return
+  const btn = document.getElementById('studio-gen-now')
+  btn.disabled = true
+  try {
+    await api(`/api/posts/${studioLastCreatedId}/generate-image`, { method: 'POST', body: '{}' })
+    document.getElementById('studio-result-msg').textContent = 'Image generated. Open Queue to preview.'
+  } catch (e) {
+    alert(e instanceof Error ? e.message : String(e))
+  } finally {
+    btn.disabled = false
+  }
+}
+
+async function submitStudioPost() {
+  const leagueId = document.getElementById('studio-league').value.trim()
+  if (!leagueId) {
+    alert('Select a league.')
+    return
+  }
+  const activeTab = document.querySelector('#studio-subtabs .tab.active')
+  const activeType = activeTab ? activeTab.dataset.studioType : 'final_score'
+  const style_pack = document.getElementById('studio-shared-style-pack').value
+  const style_version = parseInt(document.getElementById('studio-shared-sv').value, 10) || 1
+  const generate_image = document.getElementById('studio-shared-gi').checked
+  const draft = document.getElementById('studio-shared-draft').checked
+  const schedRaw = document.getElementById('studio-shared-sched').value
+  const scheduled_for = schedRaw ? new Date(schedRaw).toISOString() : null
+  const caption = document.getElementById('studio-shared-caption').value.trim()
+  const hashtags = document.getElementById('studio-shared-tags').value
+
+  /** @type {Record<string, unknown>} */
+  let payload_json = { league_id: leagueId }
+  const type = activeType
+
+  if (type === 'final_score') {
+    payload_json = {
+      ...payload_json,
+      match_id: document.getElementById('studio-fs-match_id').value.trim(),
+      home_team: document.getElementById('studio-fs-home_team').value.trim(),
+      away_team: document.getElementById('studio-fs-away_team').value.trim(),
+      home_score: Number(document.getElementById('studio-fs-home_score').value) || 0,
+      away_score: Number(document.getElementById('studio-fs-away_score').value) || 0,
+      date: document.getElementById('studio-fs-date').value.trim(),
+      home_team_logo: document.getElementById('studio-fs-home_logo').value.trim() || null,
+      away_team_logo: document.getElementById('studio-fs-away_logo').value.trim() || null,
+      league_logo: document.getElementById('studio-fs-league_logo').value.trim() || null,
+      boxscore_url: document.getElementById('studio-fs-boxscore').value.trim() || null,
+    }
+    if (!payload_json.match_id || !payload_json.home_team || !payload_json.away_team) {
+      alert('final_score requires match_id, home_team, and away_team.')
+      return
+    }
+  } else if (type === 'player_of_game') {
+    payload_json = {
+      ...payload_json,
+      match_id: document.getElementById('studio-pog-match_id').value.trim(),
+      player_name: document.getElementById('studio-pog-player_name').value.trim(),
+      stat_line: document.getElementById('studio-pog-stat_line').value.trim(),
+      team_name: document.getElementById('studio-pog-team_name').value.trim(),
+      date: document.getElementById('studio-pog-date').value.trim(),
+      team_logo: document.getElementById('studio-pog-team_logo').value.trim() || null,
+      league_logo: document.getElementById('studio-pog-league_logo').value.trim() || null,
+    }
+    if (!payload_json.match_id || !payload_json.player_name || !payload_json.team_name) {
+      alert('player_of_game requires match_id, player_name, and team_name.')
+      return
+    }
+  } else {
+    const week_label = document.getElementById('studio-pr-week').value.trim()
+    const teams = []
+    document.querySelectorAll('#pr-rows .pr-row').forEach(row => {
+      const rank = parseInt(row.querySelector('.pr-rank').value, 10)
+      const team_name = row.querySelector('.pr-name').value.trim()
+      const record = row.querySelector('.pr-record').value.trim()
+      const team_logo = row.querySelector('.pr-logo').value.trim() || null
+      if (team_name) {
+        teams.push({
+          rank: Number.isFinite(rank) ? rank : teams.length + 1,
+          team_name,
+          record,
+          team_logo,
+        })
+      }
+    })
+    if (!week_label || !teams.length) {
+      alert('Power rankings need a week label and at least one team row.')
+      return
+    }
+    payload_json = {
+      ...payload_json,
+      week_label,
+      league_logo: document.getElementById('studio-pr-league_logo').value.trim() || null,
+      teams,
+    }
+  }
+
+  const body = {
+    type,
+    caption: caption || undefined,
+    hashtags,
+    scheduled_for,
+    draft,
+    league_id: leagueId,
+    generate_image,
+    style_pack,
+    style_version,
+    payload_json,
+  }
+
+  try {
+    const created = await api('/api/posts', { method: 'POST', body: JSON.stringify(body) })
+    studioLastCreatedId = created.id
+    document.getElementById('studio-result').style.display = 'block'
+    document.getElementById('studio-result-id').textContent = created.id
+    document.getElementById('studio-result-msg').textContent = ''
+  } catch (e) {
+    alert(e instanceof Error ? e.message : String(e))
+  }
+}
+
+async function onStudioLeagueChange() {
+  const lid = document.getElementById('studio-league').value.trim()
+  const hint = document.getElementById('studio-suggestions-hint')
+  studioSuggestions = null
+  const loading = '<p class="img-meta">Loading…</p>'
+  document.getElementById('studio-fs-suggestions').innerHTML = lid ? loading : '<p class="img-meta">Select a league.</p>'
+  document.getElementById('studio-pog-suggestions').innerHTML = lid ? loading : '<p class="img-meta">Select a league.</p>'
+  if (!lid) {
+    hint.textContent = ''
+    return
+  }
+  try {
+    studioSuggestions = await api(`/api/studio/suggestions?league_id=${encodeURIComponent(lid)}`)
+    hint.textContent = 'Suggestions loaded.'
+    renderStudioFsTable()
+    renderStudioPogTable()
+  } catch (e) {
+    hint.textContent = ''
+    alert(e instanceof Error ? e.message : String(e))
+    document.getElementById('studio-fs-suggestions').innerHTML = '<p class="img-meta">Could not load suggestions.</p>'
+    document.getElementById('studio-pog-suggestions').innerHTML = '<p class="img-meta">Could not load suggestions.</p>'
+  }
+}
+
+async function loadStudioPane() {
+  const el = document.getElementById('pane-studio')
+  if (!studioPaneReady) {
+    const packOpts = STUDIO_STYLE_PACKS.map(sp =>
+      `<option value="${sp}">${sp.replace(/_/g, ' ')}</option>`
+    ).join('')
+    el.innerHTML = `
+<div class="card">
+  <h2 style="font-size:15px;font-weight:500;margin-bottom:8px">X post studio</h2>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Compose planned X posts with full <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">payload_json</code>. Row <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">match_id</code> stays null; game reference lives only inside the payload.</p>
+  <label class="field">
+    <span>League</span>
+    <select id="studio-league"><option value="">Select league…</option></select>
+  </label>
+  <p id="studio-suggestions-hint" class="img-meta"></p>
+</div>
+
+<div class="studio-subtabs tabs" id="studio-subtabs" style="border:none;margin-bottom:4px">
+  <div class="tab active" data-studio-type="final_score">Final score</div>
+  <div class="tab" data-studio-type="player_of_game">Player of game</div>
+  <div class="tab" data-studio-type="weekly_power_rankings">Power rankings</div>
+</div>
+
+<div class="studio-type-pane active" data-studio-type="final_score">
+  <div class="card">
+    <h3 style="font-size:13px;margin-bottom:8px">Verified match suggestions</h3>
+    <div id="studio-fs-suggestions"><p class="img-meta">Select a league.</p></div>
+    <h3 style="font-size:13px;margin:16px 0 8px">Payload</h3>
+    <div class="form-grid">
+      <label class="field"><span>match_id</span><input id="studio-fs-match_id" placeholder="UUID"></label>
+      <label class="field"><span>date (YYYY-MM-DD)</span><input id="studio-fs-date" placeholder="2025-03-20"></label>
+      <label class="field"><span>home_team</span><input id="studio-fs-home_team"></label>
+      <label class="field"><span>away_team</span><input id="studio-fs-away_team"></label>
+      <label class="field"><span>home_score</span><input type="number" id="studio-fs-home_score" value="0"></label>
+      <label class="field"><span>away_score</span><input type="number" id="studio-fs-away_score" value="0"></label>
+      <label class="field"><span>home_team_logo URL</span><input id="studio-fs-home_logo"></label>
+      <label class="field"><span>away_team_logo URL</span><input id="studio-fs-away_logo"></label>
+      <label class="field"><span>league_logo URL</span><input id="studio-fs-league_logo"></label>
+      <label class="field"><span>boxscore_url</span><input id="studio-fs-boxscore"></label>
+    </div>
+  </div>
+</div>
+
+<div class="studio-type-pane" data-studio-type="player_of_game">
+  <div class="card">
+    <h3 style="font-size:13px;margin-bottom:8px">MVP suggestions</h3>
+    <div id="studio-pog-suggestions"><p class="img-meta">Select a league.</p></div>
+    <h3 style="font-size:13px;margin:16px 0 8px">Payload</h3>
+    <div class="form-grid">
+      <label class="field"><span>match_id</span><input id="studio-pog-match_id"></label>
+      <label class="field"><span>date</span><input id="studio-pog-date"></label>
+      <label class="field"><span>player_name</span><input id="studio-pog-player_name"></label>
+      <label class="field"><span>team_name</span><input id="studio-pog-team_name"></label>
+      <label class="field form-grid full"><span>stat_line</span><input id="studio-pog-stat_line"></label>
+      <label class="field"><span>team_logo URL</span><input id="studio-pog-team_logo"></label>
+      <label class="field"><span>league_logo URL</span><input id="studio-pog-league_logo"></label>
+    </div>
+  </div>
+</div>
+
+<div class="studio-type-pane" data-studio-type="weekly_power_rankings">
+  <div class="card">
+    <div class="form-grid full">
+      <label class="field"><span>week_label</span><input id="studio-pr-week" placeholder="Week 3"></label>
+    </div>
+    <label class="field" style="margin-top:10px"><span>league_logo URL</span><input id="studio-pr-league_logo"></label>
+    <div class="actions" style="margin:12px 0">
+      <button type="button" class="btn btn-ghost btn-sm" id="pr-import">Import top 10</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="pr-add-row">Add team row</button>
+    </div>
+    <div id="pr-rows"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="font-size:13px;margin-bottom:10px">Schedule & caption</h3>
+  <div class="form-grid">
+    <label class="field">
+      <span>Style pack</span>
+      <select id="studio-shared-style-pack">${packOpts}</select>
+    </label>
+    <label class="field">
+      <span>Style version</span>
+      <input type="number" id="studio-shared-sv" min="1" step="1" value="1">
+    </label>
+    <label class="field">
+      <span>Schedule (optional)</span>
+      <input type="datetime-local" id="studio-shared-sched">
+    </label>
+    <label class="field" style="flex-direction:row;align-items:center;gap:10px;padding-top:20px">
+      <input type="checkbox" id="studio-shared-gi" checked>
+      <span style="font-size:13px;color:var(--text);text-transform:none;letter-spacing:0">Generate AI image</span>
+    </label>
+    <label class="field" style="flex-direction:row;align-items:center;gap:10px;padding-top:20px">
+      <input type="checkbox" id="studio-shared-draft">
+      <span style="font-size:13px;color:var(--text);text-transform:none;letter-spacing:0">Draft only</span>
+    </label>
+  </div>
+  <label class="field form-grid full" style="margin-top:10px">
+    <span>Caption (optional)</span>
+    <textarea id="studio-shared-caption" rows="3"></textarea>
+    <div class="char-count" id="studio-cap-cc">0/280</div>
+  </label>
+  <label class="field" style="margin-top:10px">
+    <span>Hashtags (optional)</span>
+    <input id="studio-shared-tags" placeholder="#LBA">
+  </label>
+  <div class="actions" style="margin-top:14px">
+    <button type="button" class="btn btn-primary" id="studio-submit">Create post</button>
+  </div>
+  <div id="studio-result" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+    <p style="font-size:13px">Created <code id="studio-result-id" style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px"></code></p>
+    <p id="studio-result-msg" class="img-meta"></p>
+    <div class="actions">
+      <button type="button" class="btn btn-primary btn-sm" id="studio-gen-now">Generate image now</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="studio-go-queue">Open queue</button>
+    </div>
+  </div>
+</div>
+`
+    document.getElementById('studio-subtabs').addEventListener('click', ev => {
+      const t = ev.target.closest('.tab[data-studio-type]')
+      if (!t) return
+      setStudioPostType(t.dataset.studioType)
+    })
+    document.getElementById('studio-league').addEventListener('change', onStudioLeagueChange)
+    document.getElementById('studio-submit').addEventListener('click', submitStudioPost)
+    document.getElementById('studio-gen-now').addEventListener('click', studioGenerateLastCreated)
+    document.getElementById('studio-go-queue').addEventListener('click', () => showTab('queue'))
+    document.getElementById('pr-add-row').addEventListener('click', () => addPrRow('', '', '', ''))
+    document.getElementById('pr-import').addEventListener('click', importPowerRankings)
+    document.getElementById('studio-shared-caption').addEventListener('input', function () {
+      document.getElementById('studio-cap-cc').textContent = `${this.value.length}/280`
+    })
+    studioPaneReady = true
+  }
+  const { leagues } = await api('/api/policies')
+  const sel = document.getElementById('studio-league')
+  const prev = sel.value
+  sel.innerHTML = '<option value="">Select league…</option>' + (leagues || []).map(lg =>
+    `<option value="${escapeHtml(lg.id)}">${escapeHtml(lg.league ?? lg.id)}</option>`
+  ).join('')
+  if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev
+}
+
+bootstrapSession()
 </script>
 </body>
 </html>
