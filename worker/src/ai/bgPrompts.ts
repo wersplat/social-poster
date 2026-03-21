@@ -3,6 +3,13 @@
  * Override brand copy with AI_IMAGE_BRAND_RULES (plain text appended to each prompt).
  */
 
+import {
+  announcementBackgroundRules,
+  buildAnnouncementAiScene,
+  normalizeVibe,
+  postTypeToKind,
+} from '../announcements/templates.js'
+
 export type StylePack =
   | 'regular'
   | 'playoffs'
@@ -50,7 +57,18 @@ export function buildBgPrompt(params: {
   stylePack: StylePack
   payload: Record<string, unknown>
 }): string {
-  const { postType, stylePack, payload: _payload } = params
+  const { postType, stylePack, payload } = params
+  const kind = postTypeToKind(postType)
+  if (kind) {
+    const vibe = normalizeVibe(
+      typeof payload.vibe === 'string' ? payload.vibe : undefined
+    )
+    const scene = buildAnnouncementAiScene(kind, vibe)
+    const rules = announcementBackgroundRules()
+    const brand = brandDirective()
+    return `Abstract basketball league announcement background plate — ${scene} ${rules} ${brand}`
+  }
+
   const styleAddon = STYLE_ADDONS[stylePack]
   const stylePart = `${styleAddon} ${BASE_RULES}`
   const brand = brandDirective()

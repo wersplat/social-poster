@@ -1,5 +1,6 @@
 import { supabase } from '../db.js'
 import type {
+  AnnouncementScheduledPayload,
   FinalScorePayload,
   PlayerOfGamePayload,
   PowerRankingsPayload,
@@ -324,6 +325,70 @@ export async function insertPlannedXPost(
     style_pack: planningOptions?.style_pack ?? 'regular',
     style_version: planningOptions?.style_version ?? 1,
     generate_image: true,
+  }
+
+  const { data, error } = await supabase
+    .from('scheduled_posts')
+    .insert({
+      post_type: postType,
+      scheduled_for: scheduledFor,
+      payload_json,
+      caption: caption ?? null,
+      status: 'scheduled',
+      publish_surface: ['x'],
+      match_id: null,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return data?.id as string | undefined
+}
+
+/** True if a non-failed X post already exists for this league + announcement type + season key. */
+export async function existsAnnouncementScheduled(
+  leagueId: string,
+  postType: string,
+  seasonDedupeKey: string
+): Promise<boolean> {
+  if (!seasonDedupeKey.trim()) return false
+
+  const { data, error } = await supabase
+    .from('scheduled_posts')
+    .select('id, payload_json, status')
+    .eq('post_type', postType)
+    .contains('publish_surface', ['x'])
+    .limit(500)
+
+  if (error) throw error
+  return (data ?? []).some(r => {
+    if (r.status === 'failed') return false
+    const j = r.payload_json as Record<string, unknown>
+    if (j?.league_id !== leagueId) return false
+    const sid = typeof j.season_id === 'string' ? j.season_id : ''
+    const sl = typeof j.season === 'string' ? j.season : ''
+    return sid === seasonDedupeKey || (!sid && sl === seasonDedupeKey)
+  })
+}
+
+/**
+ * Insert a planned announcement X post (match_id null — avoids match_id dedup index).
+ */
+export async function insertPlannedAnnouncementPost(
+  leagueId: string,
+  postType: string,
+  scheduledFor: string,
+  payload: Omit<AnnouncementScheduledPayload, 'league_id'> &
+    Record<string, unknown>,
+  caption?: string | null,
+  planningOptions?: { style_pack?: string; style_version?: number }
+): Promise<string | undefined> {
+  const payload_json: Record<string, unknown> = {
+    ...payload,
+    league_id: leagueId,
+    style_pack: planningOptions?.style_pack ?? 'regular',
+    style_version: planningOptions?.style_version ?? 1,
+    generate_image: payload.generate_image !== false,
   }
 
   const { data, error } = await supabase

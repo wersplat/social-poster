@@ -550,6 +550,9 @@ function renderAnnounceForm() {
           <span>Type</span>
           <select id="a-type">
             <option value="announcement">announcement</option>
+            <option value="announcement_registration">announcement registration (AI — prefer Studio)</option>
+            <option value="announcement_draft">announcement draft (AI — prefer Studio)</option>
+            <option value="announcement_results">announcement results (AI — prefer Studio)</option>
             <option value="registrations_open">registrations open</option>
             <option value="schedule_drop">schedule drop</option>
             <option value="combine_reminder">combine reminder</option>
@@ -576,6 +579,11 @@ function renderAnnounceForm() {
         <input id="a-tags" placeholder="#LBA #ProAmRank">
       </label>
 
+      <p style="color:var(--muted);font-size:12px;margin-top:10px">
+        For <strong>AI announcement graphics</strong>, use <strong>Studio → Announcements</strong> or
+        <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">POST /api/announcements/{registration|draft|results}</code>
+        with <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">payload_json</code> fields (<code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">season</code>, <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">cta</code>, etc.).
+      </p>
       <div class="actions" style="margin-top:16px">
         <button type="button" class="btn btn-primary" id="a-submit-now">
           <span id="a-btn-label">Post now</span>
@@ -600,20 +608,32 @@ function renderAnnounceForm() {
 
 async function submitAnnouncement(asDraft) {
   const caption = document.getElementById('a-caption').value.trim()
-  if (!caption) return
+  const t = document.getElementById('a-type').value
+  const isAiAnnouncement = t.startsWith('announcement_')
+  if (!caption && !isAiAnnouncement) return
 
   const sched = document.getElementById('a-schedule').value
   let scheduled_for = sched ? new Date(sched).toISOString() : null
 
+  const body = {
+    type: t,
+    caption: caption || undefined,
+    hashtags: document.getElementById('a-tags').value,
+    scheduled_for,
+    draft: asDraft,
+  }
+  if (isAiAnnouncement) {
+    body.generate_image = true
+    body.payload_json = {
+      season: 'Season',
+      cta: 'lba.gg',
+      vibe: 'esports_2k',
+    }
+  }
+
   await api('/api/posts', {
     method: 'POST',
-    body: JSON.stringify({
-      type: document.getElementById('a-type').value,
-      caption,
-      hashtags: document.getElementById('a-tags').value,
-      scheduled_for,
-      draft: asDraft,
-    })
+    body: JSON.stringify(body),
   })
 
   document.getElementById('a-success').style.display = 'block'
@@ -846,6 +866,50 @@ async function submitStudioPost() {
   let payload_json = { league_id: leagueId }
   const type = activeType
 
+  if (type === 'announcement') {
+    const kind = document.getElementById('studio-ann-kind').value
+    const season = document.getElementById('studio-ann-season').value.trim()
+    const cta = document.getElementById('studio-ann-cta').value.trim()
+    if (!season || !cta) {
+      alert('Announcements require season and cta.')
+      return
+    }
+    const resultLinesRaw = document.getElementById('studio-ann-result-lines').value
+    const result_lines = resultLinesRaw.split('\n').map(s => s.trim()).filter(Boolean)
+    const annBody = {
+      season,
+      season_id: document.getElementById('studio-ann-season_id').value.trim() || undefined,
+      draft_date: document.getElementById('studio-ann-draft_date').value.trim() || undefined,
+      combine_dates: document.getElementById('studio-ann-combine').value.trim() || undefined,
+      prize_pool: document.getElementById('studio-ann-prize').value.trim() || undefined,
+      cta,
+      cta_label: document.getElementById('studio-ann-cta-label').value.trim() || undefined,
+      league_logo: document.getElementById('studio-ann-league-logo').value.trim() || undefined,
+      league_id: leagueId,
+      vibe: document.getElementById('studio-ann-vibe').value,
+      headline_override: document.getElementById('studio-ann-headline').value.trim() || undefined,
+      result_lines: result_lines.length ? result_lines : undefined,
+      caption: caption || undefined,
+      hashtags,
+      scheduled_for,
+      draft,
+      generate_image,
+      style_pack,
+      style_version,
+      skip_dedupe: document.getElementById('studio-ann-skip-dedupe').checked,
+    }
+    try {
+      const created = await api(`/api/announcements/${kind}`, { method: 'POST', body: JSON.stringify(annBody) })
+      studioLastCreatedId = created.id
+      document.getElementById('studio-result').style.display = 'block'
+      document.getElementById('studio-result-id').textContent = created.id
+      document.getElementById('studio-result-msg').textContent = ''
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    }
+    return
+  }
+
   if (type === 'final_score') {
     payload_json = {
       ...payload_json,
@@ -977,6 +1041,7 @@ async function loadStudioPane() {
   <div class="tab active" data-studio-type="final_score">Final score</div>
   <div class="tab" data-studio-type="player_of_game">Player of game</div>
   <div class="tab" data-studio-type="weekly_power_rankings">Power rankings</div>
+  <div class="tab" data-studio-type="announcement">Announcements</div>
 </div>
 
 <div class="studio-type-pane active" data-studio-type="final_score">
@@ -1027,6 +1092,47 @@ async function loadStudioPane() {
       <button type="button" class="btn btn-ghost btn-sm" id="pr-add-row">Add team row</button>
     </div>
     <div id="pr-rows"></div>
+  </div>
+</div>
+
+<div class="studio-type-pane" data-studio-type="announcement">
+  <div class="card">
+    <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Creates <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">announcement_*</code> posts with AI background + Satori overlay (1200×630). Dedupes on <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">season_id</code> or <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px">season</code> per league + type.</p>
+    <div class="form-grid">
+      <label class="field">
+        <span>Kind</span>
+        <select id="studio-ann-kind">
+          <option value="registration">registration</option>
+          <option value="draft">draft</option>
+          <option value="results">results</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>vibe</span>
+        <select id="studio-ann-vibe">
+          <option value="esports_2k">esports_2k</option>
+          <option value="luxury">luxury</option>
+          <option value="hype">hype</option>
+        </select>
+      </label>
+      <label class="field form-grid full"><span>season (display)</span><input id="studio-ann-season" placeholder="Season 2"></label>
+      <label class="field form-grid full"><span>season_id (UUID, optional, dedupe)</span><input id="studio-ann-season_id" placeholder="league_seasons.id"></label>
+      <label class="field"><span>draft_date</span><input id="studio-ann-draft_date" placeholder="April 3"></label>
+      <label class="field"><span>combine_dates</span><input id="studio-ann-combine" placeholder="March 27–29"></label>
+      <label class="field"><span>prize_pool</span><input id="studio-ann-prize" placeholder="$1500"></label>
+      <label class="field form-grid full"><span>cta</span><input id="studio-ann-cta" placeholder="lba.gg/signup/player"></label>
+      <label class="field"><span>cta_label</span><input id="studio-ann-cta-label" placeholder="Sign Up Now"></label>
+      <label class="field form-grid full"><span>league_logo URL</span><input id="studio-ann-league-logo"></label>
+      <label class="field form-grid full"><span>headline_override</span><input id="studio-ann-headline" placeholder="optional"></label>
+    </div>
+    <label class="field form-grid full" style="margin-top:10px">
+      <span>result_lines (results only, one per line)</span>
+      <textarea id="studio-ann-result-lines" rows="3" placeholder="Champion: …"></textarea>
+    </label>
+    <label class="field" style="flex-direction:row;align-items:center;gap:10px;margin-top:10px">
+      <input type="checkbox" id="studio-ann-skip-dedupe">
+      <span style="font-size:13px;color:var(--text);text-transform:none;letter-spacing:0">Skip dedupe (409)</span>
+    </label>
   </div>
 </div>
 

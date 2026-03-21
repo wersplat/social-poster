@@ -8,6 +8,9 @@ export const AI_IMAGE_POST_TYPES = [
   'final_score',
   'player_of_game',
   'weekly_power_rankings',
+  'announcement_registration',
+  'announcement_draft',
+  'announcement_results',
 ] as const
 
 export type AiImagePostType = (typeof AI_IMAGE_POST_TYPES)[number]
@@ -31,6 +34,17 @@ export function getBackgroundCacheKey(
     payload.match_id
   ) {
     parts.push(String(payload.match_id))
+  }
+  if (
+    postType.startsWith('announcement_') &&
+    (payload.season_id || payload.season)
+  ) {
+    parts.push(String(payload.season_id ?? payload.season))
+    parts.push(String(payload.vibe ?? ''))
+    parts.push(String(payload.draft_date ?? ''))
+    parts.push(String(payload.combine_dates ?? ''))
+    parts.push(String(payload.prize_pool ?? ''))
+    parts.push(String(payload.headline_override ?? ''))
   }
   return sha256Hex(parts.join(':'))
 }

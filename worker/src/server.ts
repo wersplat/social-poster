@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'
 import { TwitterApi } from 'twitter-api-v2'
@@ -9,10 +9,23 @@ import {
   generateBackgroundForPost,
   isAiImagePostType,
 } from './ai/generateBackground.js'
+import { buildBgPrompt, normalizeStylePack } from './ai/bgPrompts.js'
+import {
+  type AnnouncementKind,
+  type AnnouncementPayload,
+  buildAnnouncementCaption,
+  buildMidjourneyPromptExport,
+  kindToPostType,
+  normalizeVibe,
+} from './announcements/templates.js'
 import { supabase } from './db.js'
+import { fetchLeagueLogoUrlByLeagueId } from './leagueLogo.js'
 import { isR2Configured } from './r2.js'
 import { planPosts } from './planning/planPosts.js'
-import { fetchStudioSuggestions } from './planning/queries.js'
+import {
+  existsAnnouncementScheduled,
+  fetchStudioSuggestions,
+} from './planning/queries.js'
 import {
   getXAppConsumerKeys,
   invalidateXClientCacheForLeague,
@@ -33,6 +46,14 @@ const UUID_RE =
 
 function isUuid(s: string): boolean {
   return UUID_RE.test(s.trim())
+}
+
+function parseAnnouncementKindParam(seg: string | undefined): AnnouncementKind | null {
+  const s = (seg ?? '').trim().toLowerCase()
+  if (s === 'registration') return 'registration'
+  if (s === 'draft') return 'draft'
+  if (s === 'results') return 'results'
+  return null
 }
 
 function getR2ConfigError(): string | null {
@@ -397,6 +418,193 @@ export function createServer() {
     }
   })
 
+  app.get('/api/announcements/:kind/preview-prompt', authMiddleware, async c => {
+    const kind = parseAnnouncementKindParam(c.req.param('kind'))
+    if (!kind) {
+      return c.json({ error: 'kind must be registration, draft, or results' }, 400)
+    }
+
+    const season = (c.req.query('season') ?? '').trim() || 'Season 2'
+    const cta = (c.req.query('cta') ?? '').trim() || 'lba.gg/signup/player'
+    const draft_date = (c.req.query('draft_date') ?? '').trim()
+    const combine_dates = (c.req.query('combine_dates') ?? '').trim()
+    const prize_pool = (c.req.query('prize_pool') ?? '').trim()
+    const headline_override = (c.req.query('headline_override') ?? '').trim()
+    const league_logo = (c.req.query('league_logo') ?? '').trim()
+    const vibe = normalizeVibe(c.req.query('vibe'))
+    const stylePack = normalizeStylePack(c.req.query('style_pack'))
+
+    const payload: AnnouncementPayload = {
+      season,
+      cta,
+      vibe,
+      draft_date: draft_date || undefined,
+      combine_dates: combine_dates || undefined,
+      prize_pool: prize_pool || undefined,
+      headline_override: headline_override || undefined,
+      league_logo: league_logo || null,
+    }
+
+    const postType = kindToPostType(kind)
+    const prompt = buildBgPrompt({
+      postType,
+      stylePack,
+      payload: { ...payload, vibe } as Record<string, unknown>,
+    })
+
+    return c.json({
+      post_type: postType,
+      ai_image_prompt: prompt,
+      midjourney_prompt_export: buildMidjourneyPromptExport(kind, payload),
+      default_caption: buildAnnouncementCaption(kind, payload),
+    })
+  })
+
+  async function handleAnnouncementPost(c: Context, kind: AnnouncementKind) {
+    let body: Record<string, unknown>
+    try {
+      body = (await c.req.json()) as Record<string, unknown>
+    } catch {
+      return c.json({ error: 'Invalid JSON' }, 400)
+    }
+
+    const season =
+      typeof body.season === 'string' && body.season.trim() ? body.season.trim() : ''
+    if (!season) return c.json({ error: 'season is required' }, 400)
+
+    const ctaRaw = typeof body.cta === 'string' && body.cta.trim() ? body.cta.trim() : ''
+    if (!ctaRaw) return c.json({ error: 'cta is required' }, 400)
+
+    const defaultLeague = process.env.LEAGUE_ID?.trim()
+    const leagueId =
+      typeof body.league_id === 'string' && body.league_id.trim()
+        ? body.league_id.trim()
+        : defaultLeague ?? ''
+    if (!leagueId || !isUuid(leagueId)) {
+      return c.json(
+        { error: 'league_id (UUID) is required, or set LEAGUE_ID in the worker environment' },
+        400
+      )
+    }
+
+    const postType = kindToPostType(kind)
+    const seasonId =
+      typeof body.season_id === 'string' && body.season_id.trim()
+        ? body.season_id.trim()
+        : ''
+    const dedupeKey = seasonId || season
+    const skipDedupe = body.skip_dedupe === true || body.force === true
+
+    if (!skipDedupe) {
+      const exists = await existsAnnouncementScheduled(leagueId, postType, dedupeKey)
+      if (exists) {
+        return c.json(
+          {
+            error:
+              'Duplicate announcement for this league, post type, and season key. Pass skip_dedupe: true to insert anyway.',
+            dedupe_key: dedupeKey,
+          },
+          409
+        )
+      }
+    }
+
+    const payload: Record<string, unknown> = {
+      season,
+      cta: ctaRaw,
+      league_id: leagueId,
+      vibe: normalizeVibe(typeof body.vibe === 'string' ? body.vibe : undefined),
+      generate_image: body.generate_image !== false,
+      style_pack:
+        typeof body.style_pack === 'string' && body.style_pack.trim()
+          ? body.style_pack.trim()
+          : 'regular',
+      style_version:
+        typeof body.style_version === 'number' && Number.isFinite(body.style_version)
+          ? body.style_version
+          : 1,
+    }
+
+    if (seasonId) payload.season_id = seasonId
+    if (typeof body.draft_date === 'string' && body.draft_date.trim()) {
+      payload.draft_date = body.draft_date.trim()
+    }
+    if (typeof body.combine_dates === 'string' && body.combine_dates.trim()) {
+      payload.combine_dates = body.combine_dates.trim()
+    }
+    if (typeof body.prize_pool === 'string' && body.prize_pool.trim()) {
+      payload.prize_pool = body.prize_pool.trim()
+    }
+    if (typeof body.cta_label === 'string' && body.cta_label.trim()) {
+      payload.cta_label = body.cta_label.trim()
+    }
+    const bodyLogo =
+      typeof body.league_logo === 'string' && body.league_logo.trim()
+        ? body.league_logo.trim()
+        : ''
+    if (bodyLogo) {
+      payload.league_logo = bodyLogo
+    } else {
+      const fromDb = await fetchLeagueLogoUrlByLeagueId(leagueId)
+      if (fromDb) payload.league_logo = fromDb
+    }
+    if (typeof body.headline_override === 'string' && body.headline_override.trim()) {
+      payload.headline_override = body.headline_override.trim()
+    }
+    if (Array.isArray(body.result_lines)) {
+      payload.result_lines = body.result_lines.filter(
+        (x): x is string => typeof x === 'string'
+      )
+    }
+
+    const draft = body.draft === true
+    const explicitSchedule =
+      typeof body.scheduled_for === 'string' && body.scheduled_for.trim()
+        ? new Date(body.scheduled_for).toISOString()
+        : null
+    const scheduledFor = explicitSchedule ?? new Date().toISOString()
+    const status = draft ? 'draft' : explicitSchedule ? 'scheduled' : 'pending'
+
+    const caption =
+      typeof body.caption === 'string' && body.caption.trim()
+        ? body.caption.trim()
+        : null
+
+    const hashtagRaw = typeof body.hashtags === 'string' ? body.hashtags : ''
+    const tags = hashtagRaw
+      .split(/\s+/)
+      .filter((t: string) => t.startsWith('#'))
+
+    const insertRow: Record<string, unknown> = {
+      post_type: postType,
+      status,
+      caption,
+      hashtags: tags.length ? tags : null,
+      scheduled_for: scheduledFor,
+      publish_surface: ['x'],
+      payload_json: payload,
+      match_id: null,
+    }
+
+    const { data, error } = await supabase
+      .from('scheduled_posts')
+      .insert(insertRow)
+      .select()
+      .single()
+    if (error) return c.json({ error: error.message }, 500)
+    return c.json(data, 201)
+  }
+
+  app.post('/api/announcements/registration', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'registration')
+  })
+  app.post('/api/announcements/draft', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'draft')
+  })
+  app.post('/api/announcements/results', authMiddleware, async c => {
+    return handleAnnouncementPost(c, 'results')
+  })
+
   app.get('/api/studio/suggestions', authMiddleware, async c => {
     const leagueId = (c.req.query('league_id') ?? '').trim()
     if (!leagueId || !isUuid(leagueId)) {
@@ -465,6 +673,20 @@ export function createServer() {
     }
     const lid = body.league_id
     if (typeof lid === 'string' && lid.trim()) payload_json.league_id = lid.trim()
+
+    const announcementLeagueId =
+      typeof payload_json.league_id === 'string' && payload_json.league_id.trim()
+        ? payload_json.league_id.trim()
+        : defaultLeague ?? ''
+    if (
+      type.startsWith('announcement_') &&
+      announcementLeagueId &&
+      isUuid(announcementLeagueId) &&
+      !(typeof payload_json.league_logo === 'string' && payload_json.league_logo.trim())
+    ) {
+      const logoUrl = await fetchLeagueLogoUrlByLeagueId(announcementLeagueId)
+      if (logoUrl) payload_json.league_logo = logoUrl
+    }
 
     const mid = body.match_id
     const match_id =

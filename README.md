@@ -79,8 +79,8 @@ Create a `.env` file in `worker/` with these values. Do not commit secrets.
 1. **Poll** — Every **30 seconds**, loads up to 10 rows from `scheduled_posts` where `status` is `pending` or `scheduled`, due (`scheduled_for` null or past), `retries` &lt; 3, and `publish_surface` contains `x`.
 2. **Lock** — Updates the row to `processing` only if `status` is still the value seen when fetched; if the update returns no row, another replica claimed it — skip.
 3. **Game card (optional)** — For `verified_game` with `match_id` and no `bg_image_url`, if R2 is configured, generates a PNG, uploads it, and sets `bg_image_url` before publish. On failure, continues text-only.
-4. **AI background (optional)** — For `final_score`, `player_of_game`, and `weekly_power_rankings` with no `bg_image_url` and `payload_json.generate_image !== false`, if R2 and the chosen image API are configured, generates a plate, **composites team/league logos and headline text** (Satori + Sharp) at 1200×630, uploads to R2, and sets `bg_image_url` (metadata in `payload_json.ai_bg_*`). Final-score graphics resolve names and logos from `matches` / `teams` when `payload_json.match_id` is set. On failure, continues text-only.
-5. **Caption** — From `caption`, or built from match data for `verified_game`, or template text for the three planned post types, or `payload_json.body`, plus CTA/hashtags.
+4. **AI background (optional)** — For `final_score`, `player_of_game`, `weekly_power_rankings`, and **`announcement_registration` / `announcement_draft` / `announcement_results`** with no `bg_image_url` and `payload_json.generate_image !== false`, if R2 and the chosen image API are configured, generates a plate, **composites team/league logos and headline text** (Satori + Sharp) at **1200×630** (not 1:1 — use external tools like Midjourney if you need square assets), uploads to R2, and sets `bg_image_url` (metadata in `payload_json.ai_bg_*`). Final-score graphics resolve names and logos from `matches` / `teams` when `payload_json.match_id` is set. Announcement plates are **text-free** in the model; copy is drawn via Satori (same pattern as scores). On failure, continues text-only.
+5. **Caption** — From `caption`, or built from match data for `verified_game`, or template text for planned post types and `announcement_*` types (`worker/src/announcements/templates.ts`), or `payload_json.body`, plus CTA/hashtags.
 6. **Publish** — X media from `boxscore_processed_feed_url`, `bg_image_url`, or `asset_urls[0]` (PNG). Tweet id stored in `x_post_id`.
 7. **Retries** — On error, `retries` increments; after 3 attempts, `status` becomes `failed` and `error` is set.
 8. **Stuck rows** — Every **60 seconds**, `processing` rows older than **2 minutes** reset to `pending` (X-targeting rows only).
@@ -99,6 +99,49 @@ Runs once when called (use Railway Cron or another scheduler). Requires **`LEAGU
 
 Optional JSON fields: `match_id`, `payload_json`, `generate_image`, `style_pack`, `style_version`, `league_id`, `bg_image_url`, `asset_urls`. If `LEAGUE_ID` is set in the environment and the body omits `payload_json.league_id`, the env value is copied into `payload_json` for X token resolution.
 
+### League announcements (`POST /api/announcements/*`)
+
+Authenticated like other admin APIs (`Authorization: Bearer ADMIN_SECRET`).
+
+| Route | `post_type` |
+| ----- | ----------- |
+| `POST /api/announcements/registration` | `announcement_registration` |
+| `POST /api/announcements/draft` | `announcement_draft` |
+| `POST /api/announcements/results` | `announcement_results` |
+
+**Body (JSON)** — common fields:
+
+- **`season`** (string, required) — e.g. `Season 2`
+- **`cta`** (string, required) — URL or host path, e.g. `lba.gg/signup/player`
+- **`league_id`** (UUID, required unless `LEAGUE_ID` is set in the worker env)
+- **`season_id`** (UUID, optional) — `league_seasons.id`; used with `league_id` and `post_type` for **deduplication** (returns **409** if a non-failed row already exists, unless `skip_dedupe: true` or `force: true`)
+- **`draft_date`**, **`combine_dates`**, **`prize_pool`** (optional strings)
+- **`cta_label`**, **`league_logo`**, **`headline_override`**, **`vibe`** (`esports_2k` \| `luxury` \| `hype`)
+- **`result_lines`** (string array, optional; mainly for `results`)
+- Same scheduling/caption flags as `POST /api/posts`: `scheduled_for`, `draft`, `caption`, `hashtags`, `generate_image`, `style_pack`, `style_version`
+
+Example:
+
+```json
+{
+  "season": "Season 2",
+  "season_id": "00000000-0000-0000-0000-000000000000",
+  "draft_date": "April 3",
+  "combine_dates": "March 27–29",
+  "prize_pool": "$1500",
+  "cta": "lba.gg/signup/player",
+  "vibe": "esports_2k"
+}
+```
+
+**Preview (no image API call):** `GET /api/announcements/:kind/preview-prompt?season=Season%202&cta=…&vibe=esports_2k` — returns `ai_image_prompt`, `midjourney_prompt_export`, and `default_caption`.
+
+**Admin:** Studio tab **Announcements**, or the “New announcement” form (text-only types remain; AI announcements are easiest from Studio).
+
+### Season automation (Supabase)
+
+Migration [`supabase/migrations/20260320140000_league_season_announcement_posts.sql`](supabase/migrations/20260320140000_league_season_announcement_posts.sql) defines a trigger on **`public.league_seasons`**: when **`is_active`** becomes **true** (and was not already active), it inserts three **`scheduled_posts`** rows (`announcement_registration`, `announcement_draft`, `announcement_results`) with `publish_surface = ['x']`, `match_id` null, `payload_json` built from `league_seasons` + `leagues_info` (`lg_logo_url`, `lg_url` for CTA, `prize_pool`, `season_number`, dates). **Apply that migration in your own Supabase project** (this repo does not run migrations remotely). Adjust the function if your column names differ.
+
 ## Database touchpoints
 
 - `scheduled_posts` — scheduling, surfaces, captions, media URLs, `match_id`, `payload_json` (NOT NULL on insert), `retries`, etc.
@@ -106,6 +149,7 @@ Optional JSON fields: `match_id`, `payload_json`, `generate_image`, `style_pack`
 - `matches`, `teams`, `player_stats`, `match_mvp` — game captions and card art
 - `leagues_info`, `post_policies` — admin policies UI and automation flags
 - `players`, `lba_teams`, `league_conference_standings` — used only by the **plan** job (power rankings needs `lba_teams`; omit or fix env if those objects are absent in your project)
+- `league_seasons` — optional trigger (see migration above) to enqueue announcement posts when a season is activated
 
 AI prompt metadata is stored in **`payload_json`** (`ai_bg_prompt`, `ai_bg_generated_at`, `style_pack`, …) — no extra `scheduled_posts` columns are required.
 
@@ -143,6 +187,7 @@ social-poster/
         ├── publisher.ts
         ├── card-generator.ts
         ├── r2.ts
+        ├── announcements/    # league announcement copy + AI scene fragments + MJ export helper
         ├── ai/               # OpenAI / Imagen + prompts + R2 upload
         └── planning/         # plan job + Supabase queries
 ```

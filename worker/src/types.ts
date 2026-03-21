@@ -31,6 +31,17 @@ export type ScheduledPostPayload = {
     record: string
     team_logo?: string | null
   }>
+  /** announcement_registration | announcement_draft | announcement_results */
+  season?: string
+  season_id?: string
+  draft_date?: string
+  combine_dates?: string
+  prize_pool?: string
+  cta?: string
+  cta_label?: string
+  vibe?: string
+  headline_override?: string
+  result_lines?: string[]
   [key: string]: unknown
 }
 

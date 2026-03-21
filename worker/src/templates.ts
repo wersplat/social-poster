@@ -1,3 +1,9 @@
+import {
+  buildAnnouncementCaption,
+  postTypeToKind,
+  type AnnouncementPayload,
+  normalizeVibe,
+} from './announcements/templates.js'
 import { supabase } from './db.js'
 import type { ScheduledPost } from './types.js'
 
@@ -42,6 +48,34 @@ export async function resolvePostBody(post: ScheduledPost): Promise<string> {
 
   if (post.post_type === 'weekly_power_rankings') {
     return buildFinalCaption(post, buildPowerRankingsCaption(post.payload_json))
+  }
+
+  if (post.post_type.startsWith('announcement_')) {
+    const kind = postTypeToKind(post.post_type)
+    if (!kind) {
+      throw new Error(`Unknown announcement post type: ${post.post_type}`)
+    }
+    const p = post.payload_json
+    const payload: AnnouncementPayload = {
+      season:
+        typeof p.season === 'string' && p.season.trim()
+          ? p.season.trim()
+          : 'Season',
+      season_id: typeof p.season_id === 'string' ? p.season_id : undefined,
+      draft_date: typeof p.draft_date === 'string' ? p.draft_date : undefined,
+      combine_dates: typeof p.combine_dates === 'string' ? p.combine_dates : undefined,
+      prize_pool: typeof p.prize_pool === 'string' ? p.prize_pool : undefined,
+      cta: typeof p.cta === 'string' && p.cta.trim() ? p.cta.trim() : '',
+      cta_label: typeof p.cta_label === 'string' ? p.cta_label : undefined,
+      league_logo: typeof p.league_logo === 'string' ? p.league_logo : null,
+      vibe: normalizeVibe(typeof p.vibe === 'string' ? p.vibe : undefined),
+      headline_override:
+        typeof p.headline_override === 'string' ? p.headline_override : undefined,
+      result_lines: Array.isArray(p.result_lines)
+        ? p.result_lines.filter((x): x is string => typeof x === 'string')
+        : undefined,
+    }
+    return buildFinalCaption(post, buildAnnouncementCaption(kind, payload))
   }
 
   if (post.payload_json.body && typeof post.payload_json.body === 'string') {

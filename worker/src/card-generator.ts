@@ -1,12 +1,22 @@
 import { readFileSync } from 'fs'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import decodeAvif, { init as initAvifDecode } from '@jsquash/avif/decode.js'
 import { Resvg } from '@resvg/resvg-js'
 import type { ReactElement } from 'react'
 import { createElement } from 'react'
 import satori from 'satori'
 import sharp from 'sharp'
+import {
+  ctaDisplayLabel,
+  defaultHeadline,
+  postTypeToKind,
+  secondaryLines,
+  normalizeVibe,
+} from './announcements/templates.js'
 import { supabase } from './db.js'
+import { toFetchableAssetUrl, resolveLeagueLogoForGraphicPayload } from './leagueLogo.js'
 import { isR2Configured, uploadPublicPng } from './r2.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -54,21 +64,192 @@ async function renderSatoriToPng(width: number, height: number, tree: ReactEleme
   return Buffer.from(png.render().asPng())
 }
 
+function bufferLooksLikeSvg(buf: Buffer): boolean {
+  const s = buf.subarray(0, Math.min(500, buf.length)).toString('utf8').trimStart().toLowerCase()
+  return s.startsWith('<?xml') || s.startsWith('<svg') || s.includes('<svg')
+}
+
+/** ISO BMFF / HEIF (incl. AVIF); catches `.webp` URLs that serve AVIF bytes. */
+function bufferLooksLikeHeifOrAvif(buf: Buffer): boolean {
+  if (buf.length < 12) return false
+  if (buf.subarray(4, 8).toString('ascii') !== 'ftyp') return false
+  const brand = buf.subarray(8, 12).toString('ascii')
+  return /^(avif|mif1|msf1|heic|heix|heim|heis|hevc|hevx)/.test(brand)
+}
+
+/** Major brand right after `ftyp` (byte offset 8). */
+function bufferHeifMajorBrand(buf: Buffer): string | null {
+  if (buf.length < 12) return null
+  if (buf.subarray(4, 8).toString('ascii') !== 'ftyp') return null
+  return buf.subarray(8, 12).toString('ascii')
+}
+
+/** AVIF primary brand: libvips often errors on these; decode with WASM first to avoid noisy Sharp logs. */
+function bufferIsAvifMajorBrand(buf: Buffer): boolean {
+  const major = bufferHeifMajorBrand(buf)
+  return major === 'avif' || major === 'avis'
+}
+
+const requireFromHere = createRequire(import.meta.url)
+
+let avifWasmInitPromise: Promise<void> | null = null
+
+function ensureAvifWasmLoaded(): Promise<void> {
+  if (!avifWasmInitPromise) {
+    const wasmPath = requireFromHere.resolve('@jsquash/avif/codec/dec/avif_dec.wasm')
+    avifWasmInitPromise = initAvifDecode({
+      wasmBinary: readFileSync(wasmPath),
+    }).then(() => undefined)
+  }
+  return avifWasmInitPromise
+}
+
+function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
+  const copy = new Uint8Array(buf.length)
+  copy.set(buf)
+  return copy.buffer
+}
+
+/** When libvips cannot decode AV1-in-HEIF (e.g. 10-bit), WASM decoder + sharp resize. */
+async function rasterizeHeifAvifWithJsquash(buf: Buffer, maxSide: number): Promise<string | null> {
+  try {
+    await ensureAvifWasmLoaded()
+    const ab = bufferToArrayBuffer(buf)
+    const imageData = await decodeAvif(ab, { bitDepth: 8 })
+    if (!imageData) return null
+    const { width, height, data } = imageData
+    if (!width || !height || !data.length) return null
+    const raw = Buffer.from(data.buffer, data.byteOffset, data.byteLength)
+    const resized = await sharp(raw, {
+      raw: { width, height, channels: 4 },
+    })
+      .resize(maxSide, maxSide, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer()
+    return `data:image/png;base64,${resized.toString('base64')}`
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.warn('[card] jsquash AVIF decode failed (len=%s) %s', buf.length, msg)
+  }
+  return null
+}
+
+function rasterizeSvgWithResvg(buf: Buffer, maxSide: number): string | null {
+  try {
+    const resvg = new Resvg(buf, {
+      fitTo: { mode: 'width', value: maxSide },
+    })
+    const png = resvg.render().asPng()
+    return `data:image/png;base64,${Buffer.from(png).toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+const IMAGE_FETCH_HEADERS = {
+  Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+  'User-Agent': 'social-poster/1.0 (+https://github.com)',
+} as const
+
+async function rasterizeRasterWithSharp(buf: Buffer, maxSide: number): Promise<string | null> {
+  const attempts: Array<{ label: string; pipeline: sharp.Sharp }> = [
+    {
+      label: 'pages:1+failOn:none',
+      pipeline: sharp(buf, { pages: 1, failOn: 'none' })
+        .resize(maxSide, maxSide, { fit: 'inside', withoutEnlargement: true })
+        .png(),
+    },
+    {
+      label: 'failOn:none',
+      pipeline: sharp(buf, { failOn: 'none' })
+        .resize(maxSide, maxSide, { fit: 'inside', withoutEnlargement: true })
+        .png(),
+    },
+    {
+      label: 'default',
+      pipeline: sharp(buf)
+        .resize(maxSide, maxSide, { fit: 'inside', withoutEnlargement: true })
+        .png(),
+    },
+  ]
+
+  let lastErr: unknown
+  for (const { label, pipeline } of attempts) {
+    try {
+      const resized = await pipeline.toBuffer()
+      return `data:image/png;base64,${resized.toString('base64')}`
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  const msg = lastErr instanceof Error ? lastErr.message : String(lastErr)
+  console.warn('[card] sharp rasterize failed (len=%s) %s', buf.length, msg)
+  return null
+}
+
+/** Fetch remote / decode data URL and produce a PNG data URL for Satori <img>. */
 async function fetchImageDataUrl(
   url: string | null | undefined,
   maxSide: number
 ): Promise<string | null> {
   if (!url?.trim()) return null
+  const trimmed = url.trim()
   try {
-    const res = await fetch(url.trim())
-    if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    const resized = await sharp(buf)
-      .resize(maxSide, maxSide, { fit: 'inside', withoutEnlargement: true })
-      .png()
-      .toBuffer()
-    return `data:image/png;base64,${resized.toString('base64')}`
-  } catch {
+    let buf: Buffer
+    let hintSvg = false
+
+    if (trimmed.startsWith('data:')) {
+      const comma = trimmed.indexOf(',')
+      if (comma < 0) return null
+      const meta = trimmed.slice(0, comma).toLowerCase()
+      const payload = trimmed.slice(comma + 1)
+      hintSvg = meta.includes('svg')
+      if (meta.includes(';base64')) {
+        buf = Buffer.from(payload, 'base64')
+      } else {
+        buf = Buffer.from(decodeURIComponent(payload), 'utf8')
+      }
+    } else {
+      const href = toFetchableAssetUrl(trimmed)
+      const lower = trimmed.toLowerCase()
+      hintSvg = lower.endsWith('.svg') || lower.includes('.svg?')
+      const res = await fetch(href, { headers: IMAGE_FETCH_HEADERS })
+      if (!res.ok) {
+        console.warn('[card] image fetch failed', res.status, href.slice(0, 120))
+        return null
+      }
+      const ct = (res.headers.get('content-type') ?? '').toLowerCase()
+      if (ct.includes('svg')) hintSvg = true
+      buf = Buffer.from(await res.arrayBuffer())
+    }
+
+    if (hintSvg || bufferLooksLikeSvg(buf)) {
+      const fromSvg = rasterizeSvgWithResvg(buf, maxSide)
+      if (fromSvg) return fromSvg
+    }
+
+    const avifMajor = bufferIsAvifMajorBrand(buf)
+    if (avifMajor) {
+      const fromWasmFirst = await rasterizeHeifAvifWithJsquash(buf, maxSide)
+      if (fromWasmFirst) return fromWasmFirst
+    }
+
+    // Skip Sharp for AVIF-primary BMFF: libvips often fails loudly; WASM already tried above.
+    const fromSharp = avifMajor ? null : await rasterizeRasterWithSharp(buf, maxSide)
+    if (fromSharp) return fromSharp
+
+    if (bufferLooksLikeHeifOrAvif(buf) && !avifMajor) {
+      const fromWasm = await rasterizeHeifAvifWithJsquash(buf, maxSide)
+      if (fromWasm) return fromWasm
+    }
+
+    const fallbackSvg = rasterizeSvgWithResvg(buf, maxSide)
+    if (fallbackSvg) return fallbackSvg
+
+    console.warn('[card] could not rasterize image for overlay', trimmed.slice(0, 80))
+    return null
+  } catch (e) {
+    console.warn('[card] fetchImageDataUrl error', trimmed.slice(0, 80), e)
     return null
   }
 }
@@ -378,6 +559,223 @@ async function pogOverlayTree(p: Record<string, unknown>): Promise<ReactElement>
   )
 }
 
+function announcementAccentColors(vibe: string): {
+  headline: string
+  secondary: string
+  ctaBg: string
+  ctaText: string
+} {
+  switch (vibe) {
+    case 'luxury':
+      return {
+        headline: '#f5f0e6',
+        secondary: '#c9a227',
+        ctaBg: '#c9a227',
+        ctaText: '#0a0a0c',
+      }
+    case 'hype':
+      return {
+        headline: '#ffffff',
+        secondary: '#ff6b4a',
+        ctaBg: '#ff3d5a',
+        ctaText: '#ffffff',
+      }
+    default:
+      return {
+        headline: '#f0fff4',
+        secondary: '#00e8a0',
+        ctaBg: '#00c985',
+        ctaText: '#0a0f0d',
+      }
+  }
+}
+
+async function announcementOverlayTree(
+  postType: string,
+  p: Record<string, unknown>
+): Promise<ReactElement> {
+  const kind = postTypeToKind(postType)
+  if (!kind) {
+    return createElement('div', {
+      style: { width: CARD_WIDTH, height: CARD_HEIGHT, background: 'transparent' },
+    })
+  }
+
+  const season = typeof p.season === 'string' ? p.season : ''
+  const ctaRaw = typeof p.cta === 'string' ? p.cta : ''
+  const resolvedLogoUrl = await resolveLeagueLogoForGraphicPayload(p)
+  if (!resolvedLogoUrl) {
+    const lid =
+      p.league_id != null && String(p.league_id).trim() ? String(p.league_id).trim() : '(none)'
+    console.warn(
+      '[card] announcement: no logo URL — set leagues_info.lg_logo_url (or banner_url) for league_id',
+      lid
+    )
+  }
+  const payload = {
+    season,
+    season_id: typeof p.season_id === 'string' ? p.season_id : undefined,
+    draft_date: typeof p.draft_date === 'string' ? p.draft_date : undefined,
+    combine_dates: typeof p.combine_dates === 'string' ? p.combine_dates : undefined,
+    prize_pool: typeof p.prize_pool === 'string' ? p.prize_pool : undefined,
+    cta: ctaRaw || ' ',
+    cta_label: typeof p.cta_label === 'string' ? p.cta_label : undefined,
+    league_logo: resolvedLogoUrl,
+    vibe: normalizeVibe(typeof p.vibe === 'string' ? p.vibe : undefined),
+    headline_override:
+      typeof p.headline_override === 'string' ? p.headline_override : undefined,
+    result_lines: Array.isArray(p.result_lines)
+      ? p.result_lines.filter((x): x is string => typeof x === 'string')
+      : undefined,
+  }
+
+  const vibeKey = normalizeVibe(payload.vibe)
+  const colors = announcementAccentColors(vibeKey)
+  const headline = defaultHeadline(kind, payload)
+  const lines = secondaryLines(kind, payload)
+  const leagueSrc = await fetchImageDataUrl(resolvedLogoUrl, 120)
+  const ctaLabel = ctaDisplayLabel(payload)
+  const urlLine = ctaRaw.trim() ? (ctaRaw.includes('://') ? ctaRaw : `https://${ctaRaw}`) : ''
+
+  const lineEls = lines.map(line =>
+    createElement(
+      'div',
+      {
+        style: {
+          fontSize: 26,
+          fontWeight: 600,
+          color: colors.secondary,
+          textAlign: 'center' as const,
+          letterSpacing: 1,
+          maxWidth: 1000,
+        },
+      },
+      line
+    )
+  )
+
+  return createElement(
+    'div',
+    {
+      style: {
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        background: 'transparent',
+      },
+    },
+    createElement(
+      'div',
+      {
+        style: {
+          paddingTop: 36,
+          paddingLeft: 48,
+          paddingRight: 48,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0) 100%)',
+        },
+      },
+      leagueSrc
+        ? createElement('img', {
+            src: leagueSrc,
+            width: 88,
+            height: 88,
+            style: { objectFit: 'contain' as const },
+          })
+        : createElement('div', { style: { height: 24 } }),
+      createElement(
+        'div',
+        {
+          style: {
+            fontSize: 42,
+            fontWeight: 700,
+            color: colors.headline,
+            textAlign: 'center' as const,
+            letterSpacing: 3,
+            lineHeight: 1.15,
+            maxWidth: 1100,
+            textTransform: 'uppercase' as const,
+          },
+        },
+        headline
+      )
+    ),
+    createElement(
+      'div',
+      {
+        style: {
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 10,
+          paddingLeft: 48,
+          paddingRight: 48,
+        },
+      },
+      ...lineEls
+    ),
+    createElement(
+      'div',
+      {
+        style: {
+          paddingBottom: 44,
+          paddingLeft: 48,
+          paddingRight: 48,
+          paddingTop: 24,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 12,
+          background:
+            'linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0) 100%)',
+        },
+      },
+      createElement(
+        'div',
+        {
+          style: {
+            fontSize: 30,
+            fontWeight: 700,
+            color: colors.ctaText,
+            backgroundColor: colors.ctaBg,
+            paddingLeft: 36,
+            paddingRight: 36,
+            paddingTop: 14,
+            paddingBottom: 14,
+            borderRadius: 8,
+            letterSpacing: 2,
+            textTransform: 'uppercase' as const,
+          },
+        },
+        ctaLabel
+      ),
+      urlLine
+        ? createElement(
+            'div',
+            {
+              style: {
+                fontSize: 22,
+                fontWeight: 600,
+                color: '#c8c8d8',
+                textAlign: 'center' as const,
+                maxWidth: 1000,
+              },
+            },
+            urlLine
+          )
+        : createElement('div', { style: { height: 0 } })
+    )
+  )
+}
+
 async function prOverlayTree(p: Record<string, unknown>): Promise<ReactElement> {
   const week =
     typeof p.week_label === 'string' && p.week_label.trim()
@@ -516,6 +914,12 @@ export async function composeAiPostGraphic(
       overlay = await renderSatoriToPng(CARD_WIDTH, CARD_HEIGHT, await pogOverlayTree(payload))
     } else if (postType === 'weekly_power_rankings') {
       overlay = await renderSatoriToPng(CARD_WIDTH, CARD_HEIGHT, await prOverlayTree(payload))
+    } else if (postType.startsWith('announcement_')) {
+      overlay = await renderSatoriToPng(
+        CARD_WIDTH,
+        CARD_HEIGHT,
+        await announcementOverlayTree(postType, payload)
+      )
     } else {
       return base
     }

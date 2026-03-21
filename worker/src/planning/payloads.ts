@@ -1,5 +1,9 @@
 /** Payload shapes stored in scheduled_posts.payload_json for planned posts. */
 
+import type { AnnouncementPayload } from '../announcements/templates.js'
+
+export type { AnnouncementPayload }
+
 export interface FinalScorePayload {
   match_id: string
   home_team: string
@@ -36,4 +40,12 @@ export interface PowerRankingsPayload {
   week_label: string
   teams: PowerRankingsTeam[]
   league_logo?: string | null
+}
+
+/** Stored in payload_json for announcement_* post types (automation + API). */
+export type AnnouncementScheduledPayload = AnnouncementPayload & {
+  league_id: string
+  generate_image?: boolean
+  style_pack?: string
+  style_version?: number
 }
