@@ -4,9 +4,14 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
+    "postinstall": "playwright install chromium",
+    "playwright:install": "playwright install chromium",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "test": "node --test --import tsx test-instagram/prompt.test.ts test-instagram/boxscore.test.ts test-instagram/captionMerge.test.ts test-instagram/captionSchemas.test.ts test-instagram/geminiClient.test.ts",
+    "preview-templates": "tsx src/instagram/preview.ts",
+    "publish-one": "tsx src/instagram/scripts/publishOne.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",
@@ -16,14 +21,21 @@
     "@supabase/supabase-js": "^2",
     "dotenv": "^16.6.1",
     "hono": "^4.6.0",
+    "p-limit": "^6.1.0",
+    "playwright": "^1.49.0",
     "react": "^18.3.1",
     "satori": "^0.10.14",
     "sharp": "^0.34.5",
-    "twitter-api-v2": "^1"
+    "twitter-api-v2": "^1",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@types/react": "^18.3.12",
     "tsx": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

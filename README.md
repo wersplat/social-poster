@@ -3,13 +3,14 @@
 A single **Node.js** process on Railway (or elsewhere) that:
 
 1. **Polls** Supabase `scheduled_posts` on a timer, claims rows with an optimistic lock, builds captions (including game-result copy from `matches` / `player_stats`), optionally generates a **game card** image (Satori + Resvg) for `verified_game`, optionally generates an **AI background** (OpenAI Images or Google Imagen) for `final_score` / `player_of_game` / `weekly_power_rankings`, uploads images to **Cloudflare R2**, attaches media when URLs are present, posts via the **X API**, and updates row status with retries.
-2. **Serves** a small **Hono** HTTP server on `PORT`: `GET /admin` (static HTML UI), `GET /health`, and JSON APIs under `/api/*` protected by a shared **`ADMIN_SECRET`** (Bearer token) — except **`GET /api/x/oauth/callback`**, which X redirects to after OAuth — including **`POST /api/jobs/plan`** to enqueue league-driven posts (cron-friendly).
+2. **Runs the Instagram pipeline** on an interval (default 5 minutes) when `ENABLE_INSTAGRAM_JOBS` is not `false`: unified **plan** (X + IG rows with surface-aware dedup), **render** (Playwright + boxscore), **renderVideo** (FFmpeg), **publish** / **publishVideo** (Meta Graph API). Disable pieces with `ENABLE_X_POLLER`, `ENABLE_X_PLANNING`, `ENABLE_INSTAGRAM_PLANNING`, or run legacy one-shot cron via `HTTP_ENABLED=false` and `JOB=plan|render|publish|renderVideo|publishVideo|all`.
+3. **Serves** a small **Hono** HTTP server on `PORT`: `GET /admin` (static HTML UI), `GET /health`, and JSON APIs under `/api/*` protected by a shared **`ADMIN_SECRET`** (Bearer token) — except **`GET /api/x/oauth/callback`**, which X redirects to after OAuth — including **`POST /api/jobs/plan`** to run the **unified** planner (X and/or Instagram per env flags).
 
 The runnable package lives under [`worker/`](./worker/) (`package.json` name: `social-publisher`).
 
 ## Requirements
 
-- **Node.js** 18+ (ES2022; `fetch` and modern APIs; ESM via `"type": "module"`)
+- **Node.js** 20+ (ES2022; ESM). **Docker** image includes Chromium (Playwright) and **FFmpeg** for the Instagram path; see [`worker/Dockerfile`](./worker/Dockerfile).
 - **Supabase** with the expected tables (see below)
 - **X Developer** app credentials (API key/secret; user tokens per environment or per league)
 - **Cloudflare R2** (optional) — needed for auto-generated PNG cards (`verified_game`) and for **AI background** images (stored under `social-poster/bg/…` on your bucket)
@@ -19,10 +20,16 @@ The runnable package lives under [`worker/`](./worker/) (`package.json` name: `s
 
 ```bash
 cd worker
-pnpm install   # or: npm install
+pnpm install   # or: npm install — runs playwright install chromium via postinstall
 cp .env.example .env   # create .env — see Environment variables
 pnpm run build
 pnpm start
+```
+
+If Instagram render fails with **Executable doesn't exist** under `ms-playwright`, install browsers on this machine:
+
+```bash
+cd worker && npx playwright install chromium
 ```
 
 The entrypoint loads `worker/.env` automatically via `dotenv` (so `pnpm dev` / `pnpm start` pick up `SUPABASE_URL` and other vars without exporting them in the shell).

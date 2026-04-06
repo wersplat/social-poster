@@ -21,7 +21,7 @@ import {
 import { supabase } from './db.js'
 import { fetchLeagueLogoUrlByLeagueId } from './leagueLogo.js'
 import { isR2Configured } from './r2.js'
-import { planPosts } from './planning/planPosts.js'
+import { planPosts } from './planning/unifiedPlanPosts.js'
 import {
   existsAnnouncementScheduled,
   fetchStudioSuggestions,

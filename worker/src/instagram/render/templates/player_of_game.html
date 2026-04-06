@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1350">
+  <style>
+    .logo { width: 84px; height: 84px; object-fit: contain; }
+    .badge { font-size: 20px; letter-spacing: 0.2em; opacity: 0.9; margin-bottom: 24px; }
+    .name { font-size: 56px; font-weight: 800; text-align: center; margin-bottom: 16px; }
+    .stat { font-size: 36px; opacity: 0.95; margin-bottom: 8px; }
+    .team-row { display: flex; align-items: center; gap: 12px; margin-top: 24px; }
+    .team { font-size: 28px; opacity: 0.8; }
+    .date { font-size: 22px; opacity: 0.6; margin-top: 48px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img class="logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  </div>
+  <div class="badge">PLAYER OF THE GAME</div>
+  <div class="name">{{player_name}}</div>
+  <div class="stat">{{stat_line}}</div>
+  <div class="team-row">
+    <img class="logo" src="{{team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+    <div class="team">{{team_name}}</div>
+  </div>
+  <div class="date">{{date}}</div>
+</body>
+</html>

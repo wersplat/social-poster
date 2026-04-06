@@ -1,0 +1,14 @@
+{
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "scenes": [
+    { "imageUrlOrPath": "/tmp/reel_0.png", "durationSec": 1.0 },
+    { "imageUrlOrPath": "/tmp/reel_1.png", "durationSec": 3.0 },
+    { "imageUrlOrPath": "/tmp/reel_2.png", "durationSec": 3.0 },
+    { "imageUrlOrPath": "/tmp/reel_3.png", "durationSec": 4.0 },
+    { "imageUrlOrPath": "/tmp/reel_4.png", "durationSec": 2.0 }
+  ],
+  "transition": { "type": "fade", "durationSec": 0.3 },
+  "audio": { "silent": true }
+}

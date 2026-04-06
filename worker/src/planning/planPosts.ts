@@ -37,12 +37,15 @@ const DEFAULT_PLAN_STYLE =
  * Plan X posts from league data (final scores, POG, power rankings).
  * Requires LEAGUE_ID. Power rankings need lba_teams + league_conference_standings.
  */
-export async function planPosts(): Promise<{ inserted: number; errors: string[] }> {
+export async function planXLeaguePosts(): Promise<{
+  inserted: number
+  errors: string[]
+}> {
   const leagueId = getLeagueId()
   const errors: string[] = []
   let inserted = 0
 
-  console.log('[plan] starting planPosts')
+  console.log('[plan] starting planXLeaguePosts')
 
   try {
     const matches = await fetchCompletedMatches(leagueId, 10)
@@ -153,6 +156,6 @@ export async function planPosts(): Promise<{ inserted: number; errors: string[] 
     console.error('[plan] power rankings block failed:', e)
   }
 
-  console.log('[plan] complete', { inserted, errors: errors.length })
+  console.log('[plan] X complete', { inserted, errors: errors.length })
   return { inserted, errors }
 }

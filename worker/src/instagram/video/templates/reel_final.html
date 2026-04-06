@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1920">
+  <style>
+    body { background-image: url('{{bg_image_url}}'); }
+    .logo { width: 96px; height: 96px; object-fit: contain; }
+    .date { font-size: 28px; opacity: 0.9; margin-bottom: 48px; letter-spacing: 0.1em; }
+    .vs { font-size: 36px; margin: 32px 0; opacity: 0.7; }
+    .team-row { display: flex; align-items: center; gap: 20px; justify-content: center; }
+    .team { font-size: 52px; font-weight: 700; text-align: center; max-width: 100%; }
+    .score { font-size: 80px; font-weight: 800; color: var(--lba-victory-crimson); }
+    .matchup { display: flex; align-items: center; gap: 56px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img class="logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  </div>
+  <div class="date">{{date}}</div>
+  <div class="team-row">
+    <img class="logo" src="{{away_team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+    <div class="team">{{away_team}}</div>
+  </div>
+  <div class="vs">VS</div>
+  <div class="team-row">
+    <img class="logo" src="{{home_team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+    <div class="team">{{home_team}}</div>
+  </div>
+  <div class="matchup" style="margin-top: 56px;">
+    <span class="score">{{away_score}}</span>
+    <span style="font-size: 40px; opacity: 0.6;">–</span>
+    <span class="score">{{home_score}}</span>
+  </div>
+</body>
+</html>

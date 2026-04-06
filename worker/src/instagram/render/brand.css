@@ -1,0 +1,15 @@
+/**
+ * LBA (Legends Basketball Association) brand color tokens.
+ * Replace placeholder hex values with final specs from the design asset.
+ */
+:root {
+  --lba-legacy-violet: #8B5CF6;
+  --lba-midnight-court-blue: #0f172a;
+  --lba-dynasty-purple: #4c1d95;
+  --lba-championship-gold: #eab308;
+  --lba-burnished-bronze: #b45309;
+  --lba-victory-crimson: #b91c1c;
+  --lba-text: #fff;
+  --lba-text-muted: rgba(255, 255, 255, 0.8);
+  --lba-text-subtle: rgba(255, 255, 255, 0.6);
+}

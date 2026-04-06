@@ -120,3 +120,58 @@ export async function uploadPublicPng(key: string, body: Buffer): Promise<string
 
   return `${base}/${objectKey}`
 }
+
+/** Upload arbitrary bytes; returns public URL (`R2_PUBLIC_BASE_URL` + full object key including prefix). */
+export async function uploadBuffer(
+  key: string,
+  body: Buffer,
+  contentType: string
+): Promise<string> {
+  const endpoint = getR2Endpoint()
+  const creds = resolveCredentials()
+  const rawBucket = process.env.R2_BUCKET?.trim()
+  const base = process.env.R2_PUBLIC_BASE_URL?.replace(/\/$/, '')
+  if (!endpoint || !creds || !rawBucket || !base) {
+    throw new Error('R2 is not fully configured (bucket / public URL / credentials)')
+  }
+
+  const { bucketName, keyPrefix } = splitBucket(rawBucket)
+  if (!bucketName) {
+    throw new Error('R2_BUCKET is empty or invalid')
+  }
+
+  const client = new S3Client({
+    region: 'auto',
+    endpoint,
+    credentials: creds,
+  })
+
+  const objectKey = buildKey(keyPrefix, key)
+
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: objectKey,
+        Body: body,
+        ContentType: contentType,
+      })
+    )
+  } catch (err) {
+    if (isR2AccessDenied(err)) {
+      console.error('[R2] PutObject AccessDenied', {
+        bucketName,
+        keyPrefix: keyPrefix || '(none)',
+        objectKeyPrefix: objectKey.slice(0, 64),
+      })
+      throw new Error(R2_ACCESS_DENIED_HINT)
+    }
+    if (isR2NoSuchBucket(err)) {
+      console.error('[R2] PutObject NoSuchBucket', { bucketName, keyPrefix })
+      throw new Error(R2_NO_SUCH_BUCKET_HINT)
+    }
+    throw err
+  }
+
+  return `${base}/${objectKey}`
+}

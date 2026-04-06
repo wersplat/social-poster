@@ -1,0 +1,16 @@
+{
+  "week_label": "Week 5",
+  "league_logo": "https://logo.proamrank.gg/lba.avif",
+  "teams": [
+    { "rank": 1, "team_name": "Liquid Pro Am", "record": "58-20", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 2, "team_name": "State mafia", "record": "39-15", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 3, "team_name": "TheCabin", "record": "40-3", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 4, "team_name": "Humble Talent", "record": "20-1", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 5, "team_name": "Hoop Nation", "record": "45-15", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 6, "team_name": "Bodega Cats", "record": "105-29", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 7, "team_name": "Blackout", "record": "26-13", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 8, "team_name": "Bad Energy", "record": "51-19", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 9, "team_name": "On Site", "record": "18-3", "team_logo": "https://logo.proamrank.gg/lba.avif" },
+    { "rank": 10, "team_name": "Zentastic5", "record": "19-8", "team_logo": "https://logo.proamrank.gg/lba.avif" }
+  ]
+}

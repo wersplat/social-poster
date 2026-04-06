@@ -1,0 +1,12 @@
+{
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "scenes": [
+    { "imageUrlOrPath": "/tmp/story_0.png", "durationSec": 3.0 },
+    { "imageUrlOrPath": "/tmp/story_1.png", "durationSec": 4.0 },
+    { "imageUrlOrPath": "/tmp/story_2.png", "durationSec": 2.0 }
+  ],
+  "transition": { "type": "fade", "durationSec": 0.3 },
+  "audio": { "silent": true }
+}

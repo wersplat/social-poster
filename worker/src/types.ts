@@ -68,4 +68,14 @@ export type ScheduledPost = {
   payload_json: ScheduledPostPayload
   retries: number
   x_account_id: string | null
+  /** Instagram / extended queue columns (optional on X-only rows) */
+  scheduled_for?: string | null
+  error?: string | null
+  ig_media_id?: string | null
+  x_post_id?: string | null
+  boxscore_processed_story_url?: string | null
+  boxscore_status?: string | null
+  video_story_url?: string | null
+  video_reel_url?: string | null
+  video_status?: string | null
 }

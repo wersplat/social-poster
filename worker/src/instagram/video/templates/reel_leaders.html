@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1920">
+  <style>
+    body { background-image: url('{{bg_image_url}}'); }
+    .player-name { font-size: 44px; font-weight: 800; margin-bottom: 16px; }
+    .stat-line { font-size: 32px; opacity: 0.95; margin-bottom: 24px; }
+    .team-name { font-size: 28px; opacity: 0.9; }
+    .logo { width: 120px; height: 120px; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <img class="logo" src="{{team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  <div class="player-name">{{player_name}}</div>
+  <div class="stat-line">{{stat_line}}</div>
+  <div class="team-name">{{team_name}}</div>
+</body>
+</html>

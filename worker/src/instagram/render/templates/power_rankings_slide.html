@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1350">
+  <style>
+    .logo { width: 120px; height: 120px; object-fit: contain; }
+    .week-row { display: flex; align-items: center; gap: 12px; margin-bottom: 60px; }
+    .week { font-size: 28px; letter-spacing: 0.15em; opacity: 0.85; }
+    .rank { font-size: 120px; font-weight: 900; color: var(--lba-championship-gold); line-height: 1; margin-bottom: 24px; }
+    .team-row { display: flex; align-items: center; gap: 20px; }
+    .team { font-size: 52px; font-weight: 700; text-align: center; max-width: 900px; }
+    .record { font-size: 32px; opacity: 0.9; margin-top: 24px; }
+    .change { font-size: 28px; margin-top: 16px; color: var(--lba-text-muted); }
+  </style>
+</head>
+<body>
+  <div class="week-row">
+    <img class="logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+    <div class="week">{{week_label}}</div>
+  </div>
+  <div class="rank">#{{rank}}</div>
+  <div class="team-row">
+    <img class="logo" src="{{team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+    <div class="team">{{team_name}}</div>
+  </div>
+  <div class="record">{{record}}</div>
+  <div class="change">{{change}}</div>
+</body>
+</html>
