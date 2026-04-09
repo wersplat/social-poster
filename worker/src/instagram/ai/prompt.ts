@@ -61,6 +61,20 @@ function postTypeGuidance(postType: string): string {
     ].join("\n");
   }
 
+  if (postType === "beat_writer_milestone_flash") {
+    return [
+      "Voice: League communications desk — this is a human milestone in sports media, not a player stat line.",
+      "",
+      "Lead with the milestone headline from the payload (writer_name, milestone_headline). Frame it as recognition of craft and consistency.",
+      "",
+      "Do not invent achievements. Use only writer_name, milestone_headline, and date from the payload.",
+      "",
+      "Hashtag priority: #LBA and #Legends in every post.",
+      "",
+      "Tone: 'pro' by default; 'hype' only if the headline clearly signals a major career or league-first moment.",
+    ].join("\n");
+  }
+
   if (postType === "weekly_power_rankings") {
     return [
       "Voice: The league's most informed, most opinionated analyst. You have watched every game. You have seen the tape. These rankings are not a poll — they are a verdict. Deliver them like one.",

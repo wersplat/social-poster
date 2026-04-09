@@ -40,15 +40,88 @@ export const PowerRankingsPayloadSchema = z.object({
 });
 export type PowerRankingsPayload = z.infer<typeof PowerRankingsPayloadSchema>;
 
+/** Normalized payload for beat-writer milestone flash graphics (aliases accepted in raw JSON). */
+export type BeatWriterMilestoneFlashPayload = {
+  /** May be empty when the DB row only stores `headline` (production beat-writer pipeline). */
+  writer_name: string;
+  milestone_headline: string;
+  writer_image_url: string;
+  date: string;
+  league_logo: string | null;
+  match_id?: string;
+  milestone_id?: string;
+};
+
+const BeatWriterRawSchema = z
+  .object({
+    writer_name: z.string().optional(),
+    beat_writer_name: z.string().optional(),
+    milestone: z.string().optional(),
+    milestone_headline: z.string().optional(),
+    headline: z.string().optional(),
+    writer_image_url: z.string().optional(),
+    writer_avatar_url: z.string().optional(),
+    beat_writer_image_url: z.string().optional(),
+    avatar_url: z.string().optional(),
+    date: z.string().optional(),
+    league_logo: z.string().nullish(),
+    match_id: z.string().uuid().nullish(),
+    milestone_id: z.string().optional(),
+    /** Present on rows from the beat-writer pipeline (e.g. milestone_flash). */
+    article_type: z.string().optional(),
+  })
+  .passthrough();
+
+/** Strip markdown bold markers from LLM headlines (DB payloads often include **name**). */
+function normalizeBeatWriterHeadline(s: string): string {
+  return s.replace(/\*\*/g, "").trim();
+}
+
+export function parseBeatWriterMilestoneFlash(raw: unknown): BeatWriterMilestoneFlashPayload {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error("Invalid payload for beat_writer_milestone_flash: expected object");
+  }
+  const r = BeatWriterRawSchema.parse(raw);
+  const writerName = (r.writer_name ?? r.beat_writer_name ?? "").trim();
+  const milestoneHeadline = normalizeBeatWriterHeadline(
+    (r.milestone ?? r.milestone_headline ?? r.headline ?? "").trim()
+  );
+  if (!milestoneHeadline) {
+    throw new Error(
+      "Invalid payload for beat_writer_milestone_flash: milestone headline (milestone, milestone_headline, or headline) required"
+    );
+  }
+  const img =
+    r.writer_image_url ?? r.writer_avatar_url ?? r.beat_writer_image_url ?? r.avatar_url ?? "";
+  const dateStr = (r.date ?? "").trim();
+  return {
+    writer_name: writerName,
+    milestone_headline: milestoneHeadline,
+    writer_image_url: typeof img === "string" ? img.trim() : "",
+    date: dateStr || new Date().toISOString().slice(0, 10),
+    league_logo: r.league_logo ?? null,
+    match_id: r.match_id?.trim() || undefined,
+    milestone_id: (() => {
+      if (r.milestone_id == null) return undefined;
+      const s = String(r.milestone_id).trim();
+      return s || undefined;
+    })(),
+  };
+}
+
+const BeatWriterMilestoneFlashPayloadSchema = z.unknown().transform((v) => parseBeatWriterMilestoneFlash(v));
+
 export type PayloadJson =
   | { post_type: "final_score"; data: FinalScorePayload }
   | { post_type: "player_of_game"; data: PlayerOfGamePayload }
-  | { post_type: "weekly_power_rankings"; data: PowerRankingsPayload };
+  | { post_type: "weekly_power_rankings"; data: PowerRankingsPayload }
+  | { post_type: "beat_writer_milestone_flash"; data: BeatWriterMilestoneFlashPayload };
 
 const schemas: Record<string, z.ZodSchema> = {
   final_score: FinalScorePayloadSchema,
   player_of_game: PlayerOfGamePayloadSchema,
   weekly_power_rankings: PowerRankingsPayloadSchema,
+  beat_writer_milestone_flash: BeatWriterMilestoneFlashPayloadSchema,
 };
 
 export function parsePayload(postType: string, raw: unknown): PayloadJson["data"] {

@@ -172,6 +172,9 @@ function buildFallbackHashtags(postType: string): string[] {
   if (postType === "weekly_power_rankings") {
     return ["#LBA", "#PowerRankings", "#Esports", "#Hoops", "#NYC"];
   }
+  if (postType === "beat_writer_milestone_flash") {
+    return ["#LBA", "#Legends", "#Esports", "#Hoops", "#NYC"];
+  }
   return ["#LBA", "#Esports", "#NYC", "#Hoops", "#Highlights"];
 }
 
@@ -191,6 +194,11 @@ function buildFallbackAltText(postType: string, payload: unknown): string {
   if (postType === "weekly_power_rankings" && isRecord(payload)) {
     const week = String(payload.week_label ?? "This week");
     return `${week} power rankings graphic with the top teams.`;
+  }
+  if (postType === "beat_writer_milestone_flash" && isRecord(payload)) {
+    const writer = String(payload.writer_name ?? payload.beat_writer_name ?? "Beat writer");
+    const headline = String(payload.milestone_headline ?? payload.milestone ?? payload.headline ?? "Milestone");
+    return `Beat writer milestone graphic: ${headline}. ${writer}.`;
   }
   return "LBA esports graphic.";
 }

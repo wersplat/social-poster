@@ -82,5 +82,8 @@ export function buildBgPrompt(params: {
   if (postType === 'weekly_power_rankings') {
     return `Abstract sports broadcast background designed as an authoritative power-structure visual. A front-facing wall of precision-cut obsidian stone panels — each panel floor to ceiling, with hairline gaps between them. Recessed within each gap is a thin LED strip emitting a low, cool violet light — creating a grid of vertical glowing lines against the dark panels. The lighting is directional from a single source off the upper left, casting a slight diagonal shadow across the right half of the panels and revealing the surface texture of the stone in the lit half. The center of the frame has deliberate negative space — slightly brighter ambient light here to accommodate ranking list graphics. The overall impression is a council chamber or press conference backdrop designed specifically for a league that takes its power structure seriously. ${stylePart}. ${brand}`
   }
+  if (postType === 'beat_writer_milestone_flash') {
+    return `Abstract sports media backdrop celebrating editorial craft and league storytelling — not a game recap. A quiet press-box or broadcast booth atmosphere at night: deep navy void, a single soft gold reading lamp glow on a dark surface in the lower third, subtle violet rim light along one vertical edge suggesting broadcast monitors out of frame. Upper third stays clean and dark for headline typography. Evokes respected sports journalism and milestone recognition — dignified, not flashy. ${stylePart}. ${brand}`
+  }
   return `Abstract sports broadcast background, professional arena vibe. ${stylePart}. ${brand}`
 }

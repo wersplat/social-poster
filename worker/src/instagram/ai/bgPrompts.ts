@@ -31,7 +31,11 @@ const BASE_RULES =
 const LBA_COLOR_DIRECTIVE =
   "Color palette anchored to the LBA brand: Primary base is deep midnight navy-black (the darkest possible blue-black, like an indoor arena at 2am with lights cut to a third). Secondary is a rich dynasty purple (deep jewel-toned violet — not lavender, not neon, not pastel). Accent is championship gold (warm, slightly metallic, used as edge light or surface catch-light only, never as a fill). Secondary accent is legacy violet (a lighter amethyst, used for atmospheric glow or distant light bleed). Color grading style: high contrast, shadow-forward, with lifted blacks that reveal texture rather than crushing to pure black. Moody, controlled, and premium — the visual language of a top-tier sports broadcast, not an esports gaming poster.";
 
-export type PostType = "final_score" | "player_of_game" | "weekly_power_rankings";
+export type PostType =
+  | "final_score"
+  | "player_of_game"
+  | "weekly_power_rankings"
+  | "beat_writer_milestone_flash";
 
 interface BuildBgPromptParams {
   postType: PostType;
@@ -55,6 +59,9 @@ export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptPar
   }
   if (postType === "weekly_power_rankings") {
     return `Abstract sports broadcast background designed as an authoritative power-structure visual. A front-facing wall of precision-cut obsidian stone panels — each panel floor to ceiling, with hairline gaps between them. Recessed within each gap is a thin LED strip emitting a low, cool violet light — creating a grid of vertical glowing lines against the dark panels. The lighting is directional from a single source off the upper left, casting a slight diagonal shadow across the right half of the panels and revealing the surface texture of the stone in the lit half. The center of the frame has deliberate negative space — slightly brighter ambient light here to accommodate ranking list graphics. The overall impression is a council chamber or press conference backdrop designed specifically for a league that takes its power structure seriously. ${stylePart}. ${LBA_COLOR_DIRECTIVE}`;
+  }
+  if (postType === "beat_writer_milestone_flash") {
+    return `Abstract sports media backdrop celebrating editorial craft and league storytelling — not a game recap. A quiet press-box or broadcast booth atmosphere at night: deep navy void, a single soft gold reading lamp glow on a dark surface in the lower third, subtle violet rim light along one vertical edge suggesting broadcast monitors out of frame. Upper third stays clean and dark for headline typography. Evokes respected sports journalism and milestone recognition — dignified, not flashy. ${stylePart}. ${LBA_COLOR_DIRECTIVE}`;
   }
   return `Abstract sports broadcast background, professional arena vibe. ${stylePart}. ${LBA_COLOR_DIRECTIVE}`;
 }

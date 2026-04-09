@@ -1,4 +1,9 @@
-import type { FinalScorePayload, PlayerOfGamePayload, PowerRankingsPayload } from "../util/validate.js";
+import type {
+  BeatWriterMilestoneFlashPayload,
+  FinalScorePayload,
+  PlayerOfGamePayload,
+  PowerRankingsPayload,
+} from "../util/validate.js";
 
 export interface CaptionGenerator {
   generate(postType: string, payload: unknown): string;
@@ -18,6 +23,11 @@ export const deterministicCaption: CaptionGenerator = {
       const p = payload as PowerRankingsPayload;
       const top3 = p.teams.slice(0, 3).map((t) => `${t.rank}. ${t.team_name}`).join(" | ");
       return `${p.week_label} Power Rankings\n\nTop 3: ${top3}\n\n#LBA #PowerRankings`;
+    }
+    if (postType === "beat_writer_milestone_flash") {
+      const p = payload as BeatWriterMilestoneFlashPayload;
+      const w = p.writer_name.trim();
+      return w ? `${p.milestone_headline} — ${w} #LBA` : `${p.milestone_headline} #LBA`;
     }
     return "#LBA";
   },

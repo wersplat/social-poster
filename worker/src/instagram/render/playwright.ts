@@ -2,8 +2,19 @@ import { chromium } from "playwright";
 import { readFileSync, existsSync } from "fs";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { injectData, finalScoreToTemplateData, playerOfGameToTemplateData, powerRankingsSlideToTemplateData } from "./templateData.js";
-import type { FinalScorePayload, PlayerOfGamePayload, PowerRankingsPayload } from "../util/validate.js";
+import {
+  injectData,
+  finalScoreToTemplateData,
+  playerOfGameToTemplateData,
+  powerRankingsSlideToTemplateData,
+  beatWriterMilestoneFlashToTemplateData,
+} from "./templateData.js";
+import type {
+  BeatWriterMilestoneFlashPayload,
+  FinalScorePayload,
+  PlayerOfGamePayload,
+  PowerRankingsPayload,
+} from "../util/validate.js";
 import { logger } from "../util/logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -54,6 +65,19 @@ export async function renderPlayerOfGame(payload: PlayerOfGamePayload, options?:
   let html = readFileSync(join(TEMPLATES_DIR, "player_of_game.html"), "utf-8");
   html = withBaseStyles(html);
   const data = { ...playerOfGameToTemplateData(payload), bg_image_url: options?.bgImageUrl ?? getFallbackBackgroundUrl() };
+  return renderHtml(html, data);
+}
+
+export async function renderBeatWriterMilestoneFlash(
+  payload: BeatWriterMilestoneFlashPayload,
+  options?: RenderOptions
+): Promise<Buffer> {
+  let html = readFileSync(join(TEMPLATES_DIR, "beat_writer_milestone_flash.html"), "utf-8");
+  html = withBaseStyles(html);
+  const data = {
+    ...beatWriterMilestoneFlashToTemplateData(payload),
+    bg_image_url: options?.bgImageUrl ?? getFallbackBackgroundUrl(),
+  };
   return renderHtml(html, data);
 }
 

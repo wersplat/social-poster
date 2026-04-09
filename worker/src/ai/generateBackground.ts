@@ -8,6 +8,7 @@ export const AI_IMAGE_POST_TYPES = [
   'final_score',
   'player_of_game',
   'weekly_power_rankings',
+  'beat_writer_milestone_flash',
   'announcement_registration',
   'announcement_draft',
   'announcement_results',
@@ -38,6 +39,12 @@ export function getBackgroundCacheKey(
     payload.match_id
   ) {
     parts.push(String(payload.match_id))
+  }
+  if (postType === 'beat_writer_milestone_flash') {
+    parts.push(String(payload.writer_name ?? payload.beat_writer_name ?? ''))
+    parts.push(String(payload.milestone_headline ?? payload.milestone ?? payload.headline ?? ''))
+    if (payload.milestone_id) parts.push(String(payload.milestone_id))
+    if (payload.match_id) parts.push(String(payload.match_id))
   }
   if (
     postType.startsWith('announcement_') &&

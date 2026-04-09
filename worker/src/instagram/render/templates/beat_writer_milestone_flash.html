@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1350">
+  <style>
+    .badge { font-size: 20px; letter-spacing: 0.2em; opacity: 0.9; margin-bottom: 12px; }
+    .sub-badge { font-size: 16px; letter-spacing: 0.35em; opacity: 0.75; margin-bottom: 32px; }
+    .headline { font-size: 44px; font-weight: 800; text-align: center; line-height: 1.2; margin-bottom: 40px; max-width: 920px; }
+    .writer-avatar {
+      width: 200px; height: 200px; border-radius: 50%; object-fit: cover;
+      border: 4px solid rgba(255, 255, 255, 0.25); margin-bottom: 28px;
+    }
+    .writer-avatar:not([src]), .writer-avatar[src=""], .writer-avatar.avatar-empty { display: none; }
+    .name { font-size: 52px; font-weight: 800; text-align: center; margin-bottom: 16px; }
+    .date { font-size: 22px; opacity: 0.6; margin-top: 40px; }
+    .logo { width: 84px; height: 84px; object-fit: contain; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img class="logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  </div>
+  <div class="badge">BEAT WRITER</div>
+  <div class="sub-badge">MILESTONE</div>
+  <div class="headline">{{milestone_headline}}</div>
+  <img class="writer-avatar" src="{{writer_image_url}}" alt="" onerror="this.classList.add('avatar-empty')">
+  <div class="name" style="display: {{writer_name_display}}">{{writer_name}}</div>
+  <div class="date">{{date}}</div>
+</body>
+</html>

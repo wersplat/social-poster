@@ -13,13 +13,19 @@ import {
   renderFinalScore,
   renderPlayerOfGame,
   renderPowerRankings,
+  renderBeatWriterMilestoneFlash,
   getFallbackBackgroundUrl,
 } from "../render/playwright.js";
 import { processBoxscoreImage } from "../render/boxscore/processBoxscore.js";
 import { generateCaption } from "../ai/generateCaption.js";
 import { getBackgroundCacheKey, generateBackground, type PostType, type StylePack } from "../ai/generateBackground.js";
 import { parsePayload } from "../util/validate.js";
-import type { FinalScorePayload, PlayerOfGamePayload, PowerRankingsPayload } from "../util/validate.js";
+import type {
+  BeatWriterMilestoneFlashPayload,
+  FinalScorePayload,
+  PlayerOfGamePayload,
+  PowerRankingsPayload,
+} from "../util/validate.js";
 import { logger } from "../util/logger.js";
 import { mergeCaption } from "../util/captionMerge.js";
 
@@ -257,6 +263,17 @@ export async function renderPosts() {
             );
             assetUrls.push(url);
           }
+        } else if (post.post_type === "beat_writer_milestone_flash") {
+          const buf = await renderBeatWriterMilestoneFlash(
+            payload as BeatWriterMilestoneFlashPayload,
+            renderOpts
+          );
+          const url = await uploadBuffer(
+            `posts/${post.id}/0.png`,
+            buf,
+            "image/png"
+          );
+          assetUrls.push(url);
         } else {
           throw new Error(`Unknown post_type: ${post.post_type}`);
         }

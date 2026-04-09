@@ -37,6 +37,12 @@ export function getBackgroundCacheKey(
   if (postType === "player_of_game" && payload.match_id) {
     parts.push(String(payload.match_id));
   }
+  if (postType === "beat_writer_milestone_flash") {
+    parts.push(String(payload.writer_name ?? payload.beat_writer_name ?? ""));
+    parts.push(String(payload.milestone_headline ?? payload.milestone ?? payload.headline ?? ""));
+    if (payload.milestone_id) parts.push(String(payload.milestone_id));
+    if (payload.match_id) parts.push(String(payload.match_id));
+  }
   return sha256Hex(parts.join(":"));
 }
 

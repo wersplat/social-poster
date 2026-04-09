@@ -1,4 +1,9 @@
-import type { FinalScorePayload, PlayerOfGamePayload, PowerRankingsPayload } from "../util/validate.js";
+import type {
+  BeatWriterMilestoneFlashPayload,
+  FinalScorePayload,
+  PlayerOfGamePayload,
+  PowerRankingsPayload,
+} from "../util/validate.js";
 
 export function injectData(html: string, data: Record<string, unknown>): string {
   let out = html;
@@ -12,6 +17,7 @@ export function getTemplateName(postType: string, slideIndex?: number): string {
   if (postType === "final_score") return "final_score";
   if (postType === "player_of_game") return "player_of_game";
   if (postType === "weekly_power_rankings") return "power_rankings_slide";
+  if (postType === "beat_writer_milestone_flash") return "beat_writer_milestone_flash";
   throw new Error(`Unknown post_type: ${postType}`);
 }
 
@@ -35,6 +41,18 @@ export function playerOfGameToTemplateData(p: PlayerOfGamePayload): Record<strin
     team_name: p.team_name,
     date: p.date,
     team_logo: p.team_logo ?? "",
+    league_logo: p.league_logo ?? "",
+  };
+}
+
+export function beatWriterMilestoneFlashToTemplateData(p: BeatWriterMilestoneFlashPayload): Record<string, unknown> {
+  const showWriter = p.writer_name.trim().length > 0;
+  return {
+    writer_name: p.writer_name,
+    writer_name_display: showWriter ? "block" : "none",
+    milestone_headline: p.milestone_headline,
+    writer_image_url: p.writer_image_url,
+    date: p.date,
     league_logo: p.league_logo ?? "",
   };
 }
