@@ -1,4 +1,5 @@
 import { supabase } from '../db.js'
+import { getCurrentSeasonIdForLeague } from '../currentSeason.js'
 import type {
   AnnouncementScheduledPayload,
   FinalScorePayload,
@@ -230,6 +231,11 @@ export async function fetchTop10PowerRankings(leagueId: string): Promise<{
   }>
   league_logo: string | undefined
 }> {
+  const seasonId = await getCurrentSeasonIdForLeague(leagueId)
+  if (!seasonId) {
+    return { teams: [], league_logo: undefined }
+  }
+
   const { data: lbaTeamIds, error: lbaErr } = await supabase
     .from('lba_teams')
     .select('team_id')
@@ -243,6 +249,7 @@ export async function fetchTop10PowerRankings(leagueId: string): Promise<{
     .from('league_conference_standings')
     .select('team_id, team_name, team_logo, wins, losses')
     .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
     .order('wins', { ascending: false })
     .order('losses', { ascending: true })
     .limit(50)

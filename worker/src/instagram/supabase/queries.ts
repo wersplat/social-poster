@@ -1,4 +1,5 @@
 import { supabase } from "./client.js";
+import { getCurrentSeasonIdForLeague } from "../../currentSeason.js";
 import type { FinalScorePayload, PlayerOfGamePayload, PowerRankingsPayload } from "../util/validate.js";
 import { logger } from "../util/logger.js";
 
@@ -338,6 +339,12 @@ export async function fetchMvpForMatch(
 
 // --- planPosts: fetch top 10 power rankings (scoped to league, only lba_teams) ---
 export async function fetchTop10PowerRankings() {
+  const leagueId = getInstagramLeagueId();
+  const seasonId = await getCurrentSeasonIdForLeague(leagueId);
+  if (!seasonId) {
+    return { teams: [], league_logo: undefined };
+  }
+
   const { data: lbaTeamIds, error: lbaErr } = await supabase
     .from("lba_teams")
     .select("team_id");
@@ -349,7 +356,8 @@ export async function fetchTop10PowerRankings() {
   const { data: standings, error } = await supabase
     .from("league_conference_standings")
     .select("team_id, team_name, team_logo, wins, losses")
-    .eq("league_id", getInstagramLeagueId())
+    .eq("league_id", leagueId)
+    .eq("season_id", seasonId)
     .order("wins", { ascending: false })
     .order("losses", { ascending: true })
     .limit(50);
@@ -360,7 +368,7 @@ export async function fetchTop10PowerRankings() {
   const { data: league } = await supabase
     .from("leagues_info")
     .select("lg_logo_url")
-    .eq("id", getInstagramLeagueId())
+    .eq("id", leagueId)
     .single();
   const leagueLogo = league?.lg_logo_url ?? undefined;
 
