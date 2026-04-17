@@ -308,6 +308,12 @@ function safeParseJson(text: string): unknown {
   try {
     return JSON.parse(cleaned)
   } catch {
+    // Model sometimes returns object contents without outer braces
+    if (/^\s*"/.test(cleaned) && !cleaned.trimStart().startsWith('{')) {
+      try {
+        return JSON.parse(`{${cleaned}}`)
+      } catch { /* fall through */ }
+    }
     const firstBrace = cleaned.indexOf('{')
     const lastBrace = cleaned.lastIndexOf('}')
     if (firstBrace >= 0 && lastBrace > firstBrace) {
