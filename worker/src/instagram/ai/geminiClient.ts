@@ -19,7 +19,7 @@ interface GeminiGenerateContentParams {
 interface GeminiResponseBody {
   candidates?: Array<{
     content?: {
-      parts?: Array<{ text?: string }>;
+      parts?: Array<{ text?: string; thought?: boolean }>;
     };
     finishReason?: string;
   }>;
@@ -117,6 +117,7 @@ function extractOutputText(
   const parts = candidate?.content?.parts ?? [];
   const finishReason = candidate?.finishReason;
   const text = parts
+    .filter((p) => !p.thought)
     .map((p) => (typeof p.text === "string" ? p.text : ""))
     .join("")
     .trim();

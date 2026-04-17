@@ -15,7 +15,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { sha256Hex } from './hash.js'
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
-const DEFAULT_MODEL = 'gemini-2.0-flash'
+const DEFAULT_MODEL = 'gemini-2.5-flash'
 const DEFAULT_TEMPERATURE = 0.6
 const DEFAULT_MAX_OUTPUT_TOKENS = 512
 const DEFAULT_TIMEOUT_MS = 20_000
@@ -47,7 +47,7 @@ export interface AugmentBackgroundPromptResult {
 
 interface GeminiAugmentResponse {
   candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> }
+    content?: { parts?: Array<{ text?: string; thought?: boolean }> }
     finishReason?: string
   }>
   error?: { message?: string; code?: number }
@@ -252,6 +252,7 @@ async function callGeminiAugment(
   }
 
   const text = (data.candidates?.[0]?.content?.parts ?? [])
+    .filter(p => !p.thought)
     .map(p => (typeof p.text === 'string' ? p.text : ''))
     .join('')
     .trim()
@@ -261,6 +262,7 @@ async function callGeminiAugment(
 
   const parsed = safeParseJson(text)
   if (!parsed) {
+    console.warn('[bg-augment] unparseable response preview:', text.slice(0, 300))
     throw new Error('Gemini augment: response was not valid JSON')
   }
   return validateAugmentShape(parsed)
@@ -295,15 +297,22 @@ function validateAugmentShape(
   return { sentiment, keywords, visualAddendum }
 }
 
+function stripMarkdownFences(text: string): string {
+  const s = text.trim()
+  const m = s.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/)
+  return m ? m[1].trim() : s
+}
+
 function safeParseJson(text: string): unknown {
+  const cleaned = stripMarkdownFences(text)
   try {
-    return JSON.parse(text)
+    return JSON.parse(cleaned)
   } catch {
-    const firstBrace = text.indexOf('{')
-    const lastBrace = text.lastIndexOf('}')
+    const firstBrace = cleaned.indexOf('{')
+    const lastBrace = cleaned.lastIndexOf('}')
     if (firstBrace >= 0 && lastBrace > firstBrace) {
       try {
-        return JSON.parse(text.slice(firstBrace, lastBrace + 1))
+        return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1))
       } catch {
         return null
       }
