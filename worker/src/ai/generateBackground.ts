@@ -1,8 +1,13 @@
 import { composeAiPostGraphic } from '../card-generator.js'
 import { uploadPublicPng } from '../r2.js'
+import { supabase } from '../db.js'
 import { sha256Hex } from './hash.js'
 import { buildBgPrompt, normalizeStylePack } from './bgPrompts.js'
 import { generateImage } from './imageClient.js'
+import {
+  augmentBackgroundPromptWithGameStory,
+  resolveGameStoryForAugment,
+} from './gameStoryBackgroundAugment.js'
 
 export const AI_IMAGE_POST_TYPES = [
   'final_score',
@@ -28,7 +33,8 @@ export function getBackgroundCacheKey(
   postType: string,
   stylePack: string,
   styleVersion: number,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  storyHashSuffix?: string | null
 ): string {
   const parts: string[] = [postType, stylePack, String(styleVersion)]
   if (postType === 'weekly_power_rankings' && payload.week_label) {
@@ -39,6 +45,9 @@ export function getBackgroundCacheKey(
     payload.match_id
   ) {
     parts.push(String(payload.match_id))
+  }
+  if (storyHashSuffix) {
+    parts.push(`gs:${storyHashSuffix}`)
   }
   if (postType === 'beat_writer_milestone_flash') {
     parts.push(String(payload.writer_name ?? payload.beat_writer_name ?? ''))
@@ -73,19 +82,40 @@ export interface GenerateBackgroundForPostParams {
 export interface GenerateBackgroundForPostResult {
   imageUrl: string
   prompt: string
+  augmentMeta?: { sentiment: string; keywords: string[] } | null
 }
 
-/** Build prompt, generate image, upload to R2 under social-poster/bg/… */
+/** Build prompt, optionally augment via game story, generate image, upload to R2 under social-poster/bg/… */
 export async function generateBackgroundForPost(
   params: GenerateBackgroundForPostParams
 ): Promise<GenerateBackgroundForPostResult> {
   const stylePack = normalizeStylePack(params.stylePack)
-  const prompt = buildBgPrompt({
+  const basePrompt = buildBgPrompt({
     postType: params.postType,
     stylePack,
     payload: params.payload,
   })
-  const buffer = await generateImage(prompt)
+
+  const inlineStory =
+    typeof params.payload.game_story === 'string'
+      ? params.payload.game_story
+      : null
+  const matchId =
+    typeof params.payload.match_id === 'string' ? params.payload.match_id : null
+  const { story, storyHashSuffix } = await resolveGameStoryForAugment({
+    postType: params.postType,
+    inlineStory,
+    matchId,
+    supabase,
+  })
+
+  const augment = await augmentBackgroundPromptWithGameStory({
+    basePrompt,
+    gameStory: story,
+    postType: params.postType,
+  })
+
+  const buffer = await generateImage(augment.finalPrompt)
   let outBuf = buffer
   try {
     outBuf = await composeAiPostGraphic(
@@ -100,9 +130,10 @@ export async function generateBackgroundForPost(
     params.postType,
     stylePack,
     params.styleVersion,
-    params.payload
+    params.payload,
+    storyHashSuffix
   )
   const key = `social-poster/bg/${stylePack}/${cacheKey}.png`
   const imageUrl = await uploadPublicPng(key, outBuf)
-  return { imageUrl, prompt }
+  return { imageUrl, prompt: augment.finalPrompt, augmentMeta: augment.meta }
 }

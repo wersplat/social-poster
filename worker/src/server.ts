@@ -389,16 +389,20 @@ export function createServer() {
         : 1
 
     try {
-      const { imageUrl, prompt } = await generateBackgroundForPost({
+      const { imageUrl, prompt, augmentMeta } = await generateBackgroundForPost({
         postType: row.post_type as string,
         stylePack,
         styleVersion,
         payload: p,
       })
-      const nextPayload = {
+      const nextPayload: Record<string, unknown> = {
         ...p,
         ai_bg_prompt: prompt,
         ai_bg_generated_at: new Date().toISOString(),
+      }
+      if (augmentMeta) {
+        nextPayload.ai_bg_sentiment = augmentMeta.sentiment
+        nextPayload.ai_bg_keywords = augmentMeta.keywords
       }
       const { data: updated, error: upErr } = await supabase
         .from('scheduled_posts')

@@ -9,7 +9,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "test": "node --test --import tsx test-instagram/prompt.test.ts test-instagram/boxscore.test.ts test-instagram/captionMerge.test.ts test-instagram/captionSchemas.test.ts test-instagram/geminiClient.test.ts test-instagram/beatWriterPayload.test.ts",
+    "test": "node --test --import tsx test-instagram/prompt.test.ts test-instagram/boxscore.test.ts test-instagram/captionMerge.test.ts test-instagram/captionSchemas.test.ts test-instagram/geminiClient.test.ts test-instagram/beatWriterPayload.test.ts test-instagram/gameStoryBackgroundAugment.test.ts",
     "preview-templates": "tsx src/instagram/preview.ts",
     "publish-one": "tsx src/instagram/scripts/publishOne.ts"
   },

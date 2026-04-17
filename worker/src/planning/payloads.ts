@@ -16,6 +16,8 @@ export interface FinalScorePayload {
   league_logo?: string | null
   boxscore_url?: string | null
   event_label?: string | null
+  /** Optional narrative game story used to augment the AI background prompt. If absent, it is fetched from `match_game_stories` by `match_id`. */
+  game_story?: string | null
 }
 
 export interface PlayerOfGamePayload {
@@ -26,6 +28,8 @@ export interface PlayerOfGamePayload {
   date: string
   team_logo?: string | null
   league_logo?: string | null
+  /** Optional narrative game story used to augment the AI background prompt. If absent, it is fetched from `match_game_stories` by `match_id`. */
+  game_story?: string | null
 }
 
 export interface PowerRankingsTeam {

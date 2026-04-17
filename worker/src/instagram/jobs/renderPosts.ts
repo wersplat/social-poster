@@ -19,6 +19,8 @@ import {
 import { processBoxscoreImage } from "../render/boxscore/processBoxscore.js";
 import { generateCaption } from "../ai/generateCaption.js";
 import { getBackgroundCacheKey, generateBackground, type PostType, type StylePack } from "../ai/generateBackground.js";
+import { resolveGameStoryForAugment } from "../../ai/gameStoryBackgroundAugment.js";
+import { supabase } from "../supabase/client.js";
 import { parsePayload } from "../util/validate.js";
 import type {
   BeatWriterMilestoneFlashPayload,
@@ -45,11 +47,22 @@ async function resolveBackgroundUrl(
   const stylePack = (post.bg_style_pack ?? "regular") as StylePack;
   const styleVersion = post.style_version ?? 1;
   const payload = post.payload_json as Record<string, unknown>;
+
+  const inlineStory = typeof payload.game_story === "string" ? payload.game_story : null;
+  const matchId = typeof payload.match_id === "string" ? payload.match_id : null;
+  const { story, storyHashSuffix } = await resolveGameStoryForAugment({
+    postType: post.post_type,
+    inlineStory,
+    matchId,
+    supabase,
+  });
+
   const cacheKey = getBackgroundCacheKey(
     post.post_type as PostType,
     stylePack,
     styleVersion,
-    payload
+    payload,
+    storyHashSuffix
   );
 
   const existing = await fetchBgAssetByCacheKey(cacheKey);
@@ -70,6 +83,7 @@ async function resolveBackgroundUrl(
       stylePack,
       cacheKey,
       payload,
+      gameStory: story,
     });
     await insertBgAsset({
       cache_key: cacheKey,

@@ -34,16 +34,20 @@ async function maybeGenerateAiBackground(
       ? p.style_version
       : 1
   try {
-    const { imageUrl, prompt } = await generateBackgroundForPost({
+    const { imageUrl, prompt, augmentMeta } = await generateBackgroundForPost({
       postType: working.post_type,
       stylePack,
       styleVersion,
       payload: p,
     })
-    const nextPayload = {
+    const nextPayload: Record<string, unknown> = {
       ...working.payload_json,
       ai_bg_prompt: prompt,
       ai_bg_generated_at: new Date().toISOString(),
+    }
+    if (augmentMeta) {
+      nextPayload.ai_bg_sentiment = augmentMeta.sentiment
+      nextPayload.ai_bg_keywords = augmentMeta.keywords
     }
     await supabase
       .from('scheduled_posts')
