@@ -1055,12 +1055,16 @@ export async function generateGameCard(matchId: string): Promise<string> {
       },
       createElement(
         'div',
-        { style: { flex: 1, textAlign: 'right' as const } },
-        createElement(
-          'div',
-          { style: { fontSize: 42, fontWeight: 700, lineHeight: 1.2 } },
-          teamA
-        )
+        {
+          style: {
+            flex: 1,
+            textAlign: 'right' as const,
+            fontSize: 42,
+            fontWeight: 700,
+            lineHeight: 1.2,
+          },
+        },
+        teamA
       ),
       createElement(
         'div',
@@ -1077,12 +1081,16 @@ export async function generateGameCard(matchId: string): Promise<string> {
       ),
       createElement(
         'div',
-        { style: { flex: 1, textAlign: 'left' as const } },
-        createElement(
-          'div',
-          { style: { fontSize: 42, fontWeight: 700, lineHeight: 1.2 } },
-          teamB
-        )
+        {
+          style: {
+            flex: 1,
+            textAlign: 'left' as const,
+            fontSize: 42,
+            fontWeight: 700,
+            lineHeight: 1.2,
+          },
+        },
+        teamB
       )
     ),
     createElement(
