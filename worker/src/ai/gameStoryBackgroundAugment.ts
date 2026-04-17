@@ -143,7 +143,6 @@ export async function fetchGameStoryForMatch(
 
 const AUGMENT_SCHEMA = {
   type: 'object',
-  additionalProperties: false,
   properties: {
     sentiment: {
       type: 'string',
