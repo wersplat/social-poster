@@ -17,7 +17,7 @@ import { sha256Hex } from './hash.js'
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 const DEFAULT_MODEL = 'gemini-2.5-flash'
 const DEFAULT_TEMPERATURE = 0.6
-const DEFAULT_MAX_OUTPUT_TOKENS = 512
+const DEFAULT_MAX_OUTPUT_TOKENS = 2048
 const DEFAULT_TIMEOUT_MS = 20_000
 const MAX_STORY_CHARS = 6000
 const MAX_ADDENDUM_CHARS = 900
@@ -224,6 +224,7 @@ async function callGeminiAugment(
       maxOutputTokens,
       responseMimeType: 'application/json',
       responseSchema: AUGMENT_SCHEMA,
+      thinkingConfig: { thinkingBudget: 0 },
     },
   }
 
