@@ -68,6 +68,23 @@ export async function renderPlayerOfGame(payload: PlayerOfGamePayload, options?:
   return renderHtml(html, data);
 }
 
+/**
+ * Superhero mode: the AI image is the full graphic (name, stats, caption, comic effects),
+ * so we only overlay league logo (top-left) and date (bottom-right).
+ */
+export async function renderPlayerOfGameHero(
+  payload: PlayerOfGamePayload,
+  options?: RenderOptions
+): Promise<Buffer> {
+  let html = readFileSync(join(TEMPLATES_DIR, "player_of_game_hero.html"), "utf-8");
+  html = withBaseStyles(html);
+  const data = {
+    ...playerOfGameToTemplateData(payload),
+    bg_image_url: options?.bgImageUrl ?? getFallbackBackgroundUrl(),
+  };
+  return renderHtml(html, data);
+}
+
 export async function renderBeatWriterMilestoneFlash(
   payload: BeatWriterMilestoneFlashPayload,
   options?: RenderOptions

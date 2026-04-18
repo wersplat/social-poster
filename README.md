@@ -69,6 +69,7 @@ For local development with reload, use `pnpm run dev` (runs `tsx watch src/index
 | `GAME_STORY_BG_AUGMENT` | Enable Gemini-driven game-story augmentation of the background prompt for `final_score` / `player_of_game` (`true`/`false`). Defaults to enabled when `GEMINI_API_KEY` is set. |
 | `GEMINI_BG_AUGMENT_MODEL` | Gemini text model for the augmentation step (default `gemini-2.0-flash`). Separate from `GEMINI_MODEL` / `GEMINI_IMAGE_MODEL` so caption and image settings can stay untouched. |
 | `GEMINI_BG_AUGMENT_TEMPERATURE` / `GEMINI_BG_AUGMENT_MAX_OUTPUT_TOKENS` / `GEMINI_BG_AUGMENT_TIMEOUT_MS` | Optional tuning for the augmentation step (defaults: `0.6`, `512`, `20000`) |
+| `POG_SUPERHERO_MODE` | Enable superhero-themed **Instagram** `player_of_game` graphics (`true`/`false`, default `false`). When on, the AI image generator receives the generated caption wrapped in a `"Superhero themed Match MVP Graphic based on: {caption}"` prompt and renders the entire graphic (player art, name, stat line, caption quote, comic effects). Playwright overlays only the league logo (top-left) and date (bottom-right). When off, the existing abstract spotlight plate + full Playwright text overlay is used. Falls back to the abstract plate if no caption is available. |
 
 **Per-league X tokens (optional):** If `webhook_config` has `x_access_token` and `x_access_secret` for a `league_id`, those are used instead of the default env tokens for posts tied to that league (resolved via `payload_json.league_id` or `matches.league_id`).
 

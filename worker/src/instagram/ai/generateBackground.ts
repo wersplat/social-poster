@@ -1,5 +1,5 @@
 import { sha256Hex } from "./hash.js";
-import { buildBgPrompt, type PostType, type StylePack } from "./bgPrompts.js";
+import { buildBgPrompt, buildSuperheroPrompt, type PostType, type StylePack } from "./bgPrompts.js";
 import { generateImage } from "./imageClient.js";
 import { uploadBuffer } from "../storage/r2.js";
 import { augmentBackgroundPromptWithGameStory } from "../../ai/gameStoryBackgroundAugment.js";
@@ -13,12 +13,28 @@ export interface GenerateBackgroundParams {
   payload: Record<string, unknown>;
   /** Pre-resolved game story text (from payload or DB). When present, a Gemini augment step runs before image generation. */
   gameStory?: string | null;
+  /** Generated AI caption text. When present and superhero mode is enabled for player_of_game, the caption drives the image prompt. */
+  caption?: string | null;
 }
 
 export interface GenerateBackgroundResult {
   imageUrl: string;
   prompt: string;
   augmentMeta?: { sentiment: string; keywords: string[] } | null;
+}
+
+/**
+ * Whether superhero-themed graphics are enabled for `player_of_game` posts.
+ * Defaults to false; toggled via POG_SUPERHERO_MODE env var.
+ */
+export function isSuperheroModeEnabled(): boolean {
+  const v = process.env.POG_SUPERHERO_MODE?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "on" || v === "yes";
+}
+
+/** Short stable suffix derived from caption text, used in cache keys for superhero-mode POG posts. */
+export function computeCaptionHashSuffix(caption: string): string {
+  return sha256Hex(caption.trim()).slice(0, 12);
 }
 
 /**
@@ -30,7 +46,8 @@ export function getBackgroundCacheKey(
   stylePack: string,
   styleVersion: number,
   payload: Record<string, unknown>,
-  storyHashSuffix?: string | null
+  storyHashSuffix?: string | null,
+  captionHashSuffix?: string | null
 ): string {
   const parts: string[] = [postType, stylePack, String(styleVersion)];
   if (postType === "weekly_power_rankings" && payload.week_label) {
@@ -51,6 +68,9 @@ export function getBackgroundCacheKey(
   if (storyHashSuffix) {
     parts.push(`gs:${storyHashSuffix}`);
   }
+  if (captionHashSuffix) {
+    parts.push(`cap:${captionHashSuffix}`);
+  }
   return sha256Hex(parts.join(":"));
 }
 
@@ -60,7 +80,22 @@ export function getBackgroundCacheKey(
  * the final prompt used.
  */
 export async function generateBackground(params: GenerateBackgroundParams): Promise<GenerateBackgroundResult> {
-  const { postType, stylePack, cacheKey, payload, gameStory } = params;
+  const { postType, stylePack, cacheKey, payload, gameStory, caption } = params;
+
+  const useSuperhero =
+    postType === "player_of_game" &&
+    isSuperheroModeEnabled() &&
+    typeof caption === "string" &&
+    caption.trim().length > 0;
+
+  if (useSuperhero) {
+    const superheroPrompt = buildSuperheroPrompt(caption!.trim());
+    const buffer = await generateImage(superheroPrompt);
+    const r2Key = `lba/bg/${stylePack}/${cacheKey}.png`;
+    const imageUrl = await uploadBuffer(r2Key, buffer, "image/png");
+    return { imageUrl, prompt: superheroPrompt, augmentMeta: null };
+  }
+
   const basePrompt = buildBgPrompt({ postType, stylePack, payload });
   const augment = await augmentBackgroundPromptWithGameStory({
     basePrompt,

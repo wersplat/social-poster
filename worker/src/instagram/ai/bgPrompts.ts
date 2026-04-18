@@ -65,3 +65,27 @@ export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptPar
   }
   return `Abstract sports broadcast background, professional arena vibe. ${stylePart}. ${LBA_COLOR_DIRECTIVE}`;
 }
+
+/**
+ * Build a superhero-themed "Match MVP" graphic prompt. Unlike `buildBgPrompt`,
+ * this intentionally does NOT include BASE_RULES (which forbid text/logos) or
+ * LBA_COLOR_DIRECTIVE — the image model should render the player name, stat
+ * line, team name, and caption quote directly into the graphic with comic-book
+ * typography and dynamic superhero art. Playwright will only overlay the
+ * league logo and date after generation.
+ */
+export function buildSuperheroPrompt(caption: string): string {
+  return [
+    "Superhero themed Match MVP Graphic based on:",
+    "",
+    caption,
+    "",
+    "4:5 portrait aspect ratio (1080x1350).",
+    "Comic book / superhero art style with bold line work, dynamic perspective, and halftone shading.",
+    "Render the player name, stat line, and team name prominently as styled comic-book typography inside the graphic.",
+    "Include the caption quote (or a tight excerpt) as a styled narration caption box within the composition.",
+    "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!).",
+    "Leave the top-left corner and bottom-right corner relatively clean for a small league logo and date overlay.",
+    "Color palette: deep navy, dynasty purple, championship gold, legacy violet. Premium sports broadcast energy, not amateur comic.",
+  ].join("\n");
+}

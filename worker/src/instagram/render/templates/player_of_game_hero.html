@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1350">
+  <style>
+    /* Override the base centered flex layout. The AI image IS the graphic;
+       only the league logo (top-left) and date (bottom-right) are overlaid. */
+    body {
+      display: block;
+      padding: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+    .hero-league-logo {
+      position: absolute;
+      top: 32px;
+      left: 32px;
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+    }
+    .hero-league-logo.logo-empty { display: none; }
+    .hero-date {
+      position: absolute;
+      bottom: 28px;
+      right: 36px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <img class="hero-league-logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  <div class="hero-date">{{date}}</div>
+</body>
+</html>

@@ -12,13 +12,21 @@ import { uploadBuffer } from "../storage/r2.js";
 import {
   renderFinalScore,
   renderPlayerOfGame,
+  renderPlayerOfGameHero,
   renderPowerRankings,
   renderBeatWriterMilestoneFlash,
   getFallbackBackgroundUrl,
 } from "../render/playwright.js";
 import { processBoxscoreImage } from "../render/boxscore/processBoxscore.js";
 import { generateCaption } from "../ai/generateCaption.js";
-import { getBackgroundCacheKey, generateBackground, type PostType, type StylePack } from "../ai/generateBackground.js";
+import {
+  getBackgroundCacheKey,
+  generateBackground,
+  isSuperheroModeEnabled,
+  computeCaptionHashSuffix,
+  type PostType,
+  type StylePack,
+} from "../ai/generateBackground.js";
 import { resolveGameStoryForAugment } from "../../ai/gameStoryBackgroundAugment.js";
 import { supabase } from "../supabase/client.js";
 import { parsePayload } from "../util/validate.js";
@@ -42,27 +50,40 @@ async function resolveBackgroundUrl(
     bg_style_pack: string | null;
     style_version: number | null;
     payload_json: unknown;
-  }
+  },
+  caption?: string | null
 ): Promise<string> {
   const stylePack = (post.bg_style_pack ?? "regular") as StylePack;
   const styleVersion = post.style_version ?? 1;
   const payload = post.payload_json as Record<string, unknown>;
 
+  const isSuperheroPog =
+    post.post_type === "player_of_game" &&
+    isSuperheroModeEnabled() &&
+    typeof caption === "string" &&
+    caption.trim().length > 0;
+
+  // Superhero POG images are driven entirely by the caption; skip the game-story augment step.
   const inlineStory = typeof payload.game_story === "string" ? payload.game_story : null;
   const matchId = typeof payload.match_id === "string" ? payload.match_id : null;
-  const { story, storyHashSuffix } = await resolveGameStoryForAugment({
-    postType: post.post_type,
-    inlineStory,
-    matchId,
-    supabase,
-  });
+  const { story, storyHashSuffix } = isSuperheroPog
+    ? { story: null, storyHashSuffix: null }
+    : await resolveGameStoryForAugment({
+        postType: post.post_type,
+        inlineStory,
+        matchId,
+        supabase,
+      });
+
+  const captionHashSuffix = isSuperheroPog ? computeCaptionHashSuffix(caption!) : null;
 
   const cacheKey = getBackgroundCacheKey(
     post.post_type as PostType,
     stylePack,
     styleVersion,
     payload,
-    storyHashSuffix
+    storyHashSuffix,
+    captionHashSuffix
   );
 
   const existing = await fetchBgAssetByCacheKey(cacheKey);
@@ -84,6 +105,7 @@ async function resolveBackgroundUrl(
       cacheKey,
       payload,
       gameStory: story,
+      caption: isSuperheroPog ? caption : null,
     });
     await insertBgAsset({
       cache_key: cacheKey,
@@ -171,7 +193,7 @@ export async function renderPosts() {
 
         let bgImageUrl: string = post.bg_image_url ?? "";
         if (!bgImageUrl) {
-          bgImageUrl = await resolveBackgroundUrl(post);
+          bgImageUrl = await resolveBackgroundUrl(post, baseCaption);
         }
         if (!bgImageUrl) {
           bgImageUrl = getFallbackBackgroundUrl();
@@ -260,7 +282,12 @@ export async function renderPosts() {
             }
           }
         } else if (post.post_type === "player_of_game") {
-          const buf = await renderPlayerOfGame(payload as PlayerOfGamePayload, renderOpts);
+          const pogPayload = payload as PlayerOfGamePayload;
+          const useSuperhero =
+            isSuperheroModeEnabled() && baseCaption.trim().length > 0;
+          const buf = useSuperhero
+            ? await renderPlayerOfGameHero(pogPayload, renderOpts)
+            : await renderPlayerOfGame(pogPayload, renderOpts);
           const url = await uploadBuffer(
             `posts/${post.id}/0.png`,
             buf,
