@@ -4,123 +4,159 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=1080, height=1350">
   <style>
-    /* Superhero plate = AI art only; typography is rendered here for correct stats/names. */
+    /* AI image is the background; text is composited for crisp, accurate copy. */
     body {
       display: block;
-      position: relative;
       padding: 0;
-      align-items: stretch;
-      justify-content: flex-start;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
     }
-    .hero-top {
+    .hero-text-layer {
       position: absolute;
-      top: 36px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 2;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
     }
-    .hero-top .logo {
-      width: 88px;
-      height: 88px;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
-    }
-    .hero-panel {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 2;
-      padding: 40px 48px 52px;
-      text-align: center;
-      background: linear-gradient(
-        to top,
-        rgba(15, 23, 42, 0.97) 0%,
-        rgba(15, 23, 42, 0.88) 42%,
-        rgba(15, 23, 42, 0.35) 78%,
-        transparent 100%
-      );
-    }
-    .badge {
+    .hero-kicker {
       font-size: 18px;
       font-weight: 700;
       letter-spacing: 0.28em;
-      color: rgba(255, 255, 255, 0.92);
-      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
-      margin-bottom: 16px;
-    }
-    .name {
-      font-size: 52px;
-      font-weight: 800;
-      line-height: 1.12;
-      color: #fff;
+      text-transform: uppercase;
+      color: #fbbf24;
       text-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.9),
-        0 0 28px rgba(0, 0, 0, 0.65);
-      margin-bottom: 14px;
-      max-width: 980px;
-      margin-left: auto;
-      margin-right: auto;
+        0 0 2px #000,
+        0 2px 4px rgba(0, 0, 0, 0.85),
+        2px 2px 0 #1e1b4b;
+      margin-bottom: 12px;
     }
-    .stat {
-      font-size: 32px;
-      font-weight: 600;
-      line-height: 1.35;
+    .hero-headline {
+      position: absolute;
+      top: 96px;
+      left: 40px;
+      right: 40px;
+      padding-left: 100px;
+      padding-right: 100px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .hero-player-name {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #ffffff;
+      text-shadow:
+        0 1px 0 #000,
+        0 -1px 0 #000,
+        1px 0 0 #000,
+        -1px 0 0 #000,
+        0 4px 12px rgba(0, 0, 0, 0.75);
+      margin-bottom: 10px;
+    }
+    .hero-stat-line {
+      font-size: 30px;
+      font-weight: 700;
       letter-spacing: 0.02em;
-      color: rgba(255, 255, 255, 0.96);
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.88);
-      margin-bottom: 6px;
-      max-width: 980px;
-      margin-left: auto;
-      margin-right: auto;
+      color: #fef9c3;
+      text-shadow:
+        0 1px 0 #000,
+        0 -1px 0 #000,
+        1px 0 0 #000,
+        -1px 0 0 #000,
+        0 3px 10px rgba(0, 0, 0, 0.8);
     }
-    .team-row {
+    .hero-team-row {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 14px;
-      margin-top: 18px;
+      margin-top: 22px;
     }
-    .team-row .logo {
+    .hero-team-logo {
       width: 56px;
       height: 56px;
       object-fit: contain;
-      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.65));
     }
-    .team {
+    .hero-team-logo.logo-empty { display: none; }
+    .hero-team-name {
       font-size: 26px;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.88);
+      color: rgba(255, 255, 255, 0.95);
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
     }
+    .hero-quote-wrap {
+      display: {{hero_caption_wrap_display}};
+      position: absolute;
+      left: 32px;
+      top: 400px;
+      width: min(440px, 86vw);
+      max-height: 480px;
+    }
+    .hero-bubble {
+      background: rgba(255, 255, 255, 0.94);
+      border: 3px solid #0f172a;
+      border-radius: 20px;
+      padding: 20px 22px;
+      box-shadow:
+        4px 4px 0 rgba(15, 23, 42, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+    .hero-caption {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #0f172a;
+      font-family: system-ui, -apple-system, sans-serif;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .hero-league-logo {
+      position: absolute;
+      top: 32px;
+      left: 32px;
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+      z-index: 10;
+    }
+    .hero-league-logo.logo-empty { display: none; }
     .hero-date {
       position: absolute;
-      bottom: 22px;
-      right: 32px;
-      z-index: 3;
-      font-size: 20px;
+      bottom: 28px;
+      right: 36px;
+      font-size: 22px;
       font-weight: 600;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.82);
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      color: #ffffff;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
       font-family: system-ui, -apple-system, sans-serif;
+      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <div class="hero-top">
-    <img class="logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
-  </div>
-  <div class="hero-panel">
-    <div class="badge">PLAYER OF THE GAME</div>
-    <div class="name">{{player_name}}</div>
-    <div class="stat">{{stat_line}}</div>
-    <div class="team-row">
-      <img class="logo" src="{{team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
-      <div class="team">{{team_name}}</div>
+  <div class="hero-text-layer">
+    <div class="hero-headline">
+      <div class="hero-kicker">PLAYER OF THE GAME</div>
+      <div class="hero-player-name">{{player_name}}</div>
+      <div class="hero-stat-line">{{stat_line}}</div>
+      <div class="hero-team-row">
+        <img class="hero-team-logo" src="{{team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+        <div class="hero-team-name">{{team_name}}</div>
+      </div>
     </div>
+    <aside class="hero-quote-wrap">
+      <div class="hero-bubble">
+        <p class="hero-caption">{{hero_caption}}</p>
+      </div>
+    </aside>
   </div>
+  <img class="hero-league-logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
   <div class="hero-date">{{date}}</div>
 </body>
 </html>

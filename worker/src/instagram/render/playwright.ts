@@ -6,6 +6,7 @@ import {
   injectData,
   finalScoreToTemplateData,
   playerOfGameToTemplateData,
+  playerOfGameHeroToTemplateData,
   powerRankingsSlideToTemplateData,
   beatWriterMilestoneFlashToTemplateData,
 } from "./templateData.js";
@@ -52,6 +53,8 @@ export function getFallbackBackgroundUrl(): string {
 
 export interface RenderOptions {
   bgImageUrl?: string | null;
+  /** Merged caption for superhero mode: speech-bubble overlay (hashtags stripped). */
+  heroCaption?: string | null;
 }
 
 export async function renderFinalScore(payload: FinalScorePayload, options?: RenderOptions): Promise<Buffer> {
@@ -69,8 +72,8 @@ export async function renderPlayerOfGame(payload: PlayerOfGamePayload, options?:
 }
 
 /**
- * Superhero mode: AI generates art-only comic plate (no in-image text). This template overlays
- * league logo, PLAYER OF THE GAME, name, stat line, team — same data as regular POG.
+ * Superhero mode: AI supplies art and empty comic panels; Playwright composites
+ * player name, stat line, team, caption, plus league logo and date.
  */
 export async function renderPlayerOfGameHero(
   payload: PlayerOfGamePayload,
@@ -79,7 +82,7 @@ export async function renderPlayerOfGameHero(
   let html = readFileSync(join(TEMPLATES_DIR, "player_of_game_hero.html"), "utf-8");
   html = withBaseStyles(html);
   const data = {
-    ...playerOfGameToTemplateData(payload),
+    ...playerOfGameHeroToTemplateData(payload, options?.heroCaption ?? ""),
     bg_image_url: options?.bgImageUrl ?? getFallbackBackgroundUrl(),
   };
   return renderHtml(html, data);

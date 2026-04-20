@@ -67,18 +67,23 @@ export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptPar
 }
 
 /**
- * Superhero MVP **background plate only**: loud comic-book art; stats/names come from Playwright.
- * Allows short comic impact words only — no player names, stats, quotes, or resolution strings.
+ * Build a superhero-themed "Match MVP" graphic prompt. Unlike `buildBgPrompt`,
+ * this intentionally does NOT include BASE_RULES (which forbid text/logos) or
+ * LBA_COLOR_DIRECTIVE. Readable name/stat/quote text is composited in Playwright;
+ * the image model supplies art plus empty comic panels/bubbles only.
  */
-export function buildSuperheroArtPrompt(): string {
+export function buildSuperheroPrompt(caption: string): string {
   return [
-    "Illustration only — a vertical 4:5 portrait. It must read as a real comic book / superhero cover, not a flat stock photo.",
+    "Superhero themed Match MVP Graphic based on:",
+    "",
+    caption,
+    "",
+    "4:5 portrait aspect ratio (1080x1350).",
     "Comic book / superhero art style with bold line work, dynamic perspective, and halftone shading.",
-    "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!) in classic comic lettering bursts — short onomatopoeia only, never sentences.",
-    "CRITICAL — do NOT render: player or team names, gamertags, stat lines, scores, dates, hashtags, league logos, watermarks, UI, speech bubbles with dialogue, or dimension labels (e.g. 1080x1350). Those are added in post; wrong text here ruins the graphic.",
-    "Halftone dots, speed lines, starbursts, motion streaks, energy auras, and exaggerated comic anatomy are encouraged — maximal superhero basketball energy.",
-    "Dramatic lighting; deep navy and dynasty purple shadows; championship gold and legacy violet as accent highlights.",
-    "Composition: keep the lower third relatively open and a bit darker so overlaid MVP text reads clearly; keep top corners uncluttered for a small logo overlay.",
-    LBA_COLOR_DIRECTIVE,
+    "Do not render readable letters, numbers, or words for the player name, stat line, team name, or narrative quote — only empty comic-book speech bubbles and empty caption or narration boxes: white or very light interiors, bold black outlines, no glyphs inside those shapes.",
+    "Reserve the upper third of the frame for empty headline/stat panels or banners (same: outlined empty shapes only, no text).",
+    "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!).",
+    "Leave the top-left corner and bottom-right corner relatively clean for a small league logo and date overlay.",
+    "Color palette: deep navy, dynasty purple, championship gold, legacy violet. Premium sports broadcast energy, not amateur comic.",
   ].join("\n");
 }

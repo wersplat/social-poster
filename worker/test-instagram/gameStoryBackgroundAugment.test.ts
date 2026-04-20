@@ -200,10 +200,3 @@ test("getBackgroundCacheKey produces a different key when story hash suffix is p
   assert.notEqual(base, withSuffix);
   assert.notEqual(withSuffix, withDifferentSuffix);
 });
-
-test("getBackgroundCacheKey separates superhero POG plates from regular POG backgrounds", () => {
-  const payload = { match_id: "match-xyz" };
-  const regularPog = getBackgroundCacheKey("player_of_game", "regular", 1, payload, null, null, false);
-  const superheroPog = getBackgroundCacheKey("player_of_game", "regular", 1, payload, null, null, true);
-  assert.notEqual(regularPog, superheroPog);
-});

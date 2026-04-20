@@ -45,6 +45,42 @@ export function playerOfGameToTemplateData(p: PlayerOfGamePayload): Record<strin
   };
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Strip hashtag tokens for on-image caption overlay (hashtags stay in the IG caption only). */
+export function captionForHeroOverlay(mergedCaption: string): string {
+  return mergedCaption
+    .replace(/#\w+/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Template fields for superhero POG: DB stats + caption overlay (HTML-escaped).
+ */
+export function playerOfGameHeroToTemplateData(
+  p: PlayerOfGamePayload,
+  mergedCaption: string
+): Record<string, unknown> {
+  const captionClean = captionForHeroOverlay(mergedCaption);
+  return {
+    player_name: escapeHtml(p.player_name),
+    stat_line: escapeHtml(p.stat_line),
+    team_name: escapeHtml(p.team_name),
+    date: escapeHtml(p.date),
+    team_logo: p.team_logo ?? "",
+    league_logo: p.league_logo ?? "",
+    hero_caption: escapeHtml(captionClean),
+    hero_caption_wrap_display: captionClean.length > 0 ? "block" : "none",
+  };
+}
+
 export function beatWriterMilestoneFlashToTemplateData(p: BeatWriterMilestoneFlashPayload): Record<string, unknown> {
   const showWriter = p.writer_name.trim().length > 0;
   return {

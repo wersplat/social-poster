@@ -1,5 +1,5 @@
 import { sha256Hex } from "./hash.js";
-import { buildBgPrompt, buildSuperheroArtPrompt, type PostType, type StylePack } from "./bgPrompts.js";
+import { buildBgPrompt, buildSuperheroPrompt, type PostType, type StylePack } from "./bgPrompts.js";
 import { generateImage } from "./imageClient.js";
 import { uploadBuffer } from "../storage/r2.js";
 import { augmentBackgroundPromptWithGameStory } from "../../ai/gameStoryBackgroundAugment.js";
@@ -13,7 +13,7 @@ export interface GenerateBackgroundParams {
   payload: Record<string, unknown>;
   /** Pre-resolved game story text (from payload or DB). When present, a Gemini augment step runs before image generation. */
   gameStory?: string | null;
-  /** Unused for superhero art (text is Playwright-overlayed); kept for API compatibility. */
+  /** Generated AI caption text. When present and superhero mode is enabled for player_of_game, the caption drives the image prompt. */
   caption?: string | null;
 }
 
@@ -32,6 +32,11 @@ export function isSuperheroModeEnabled(): boolean {
   return v === "1" || v === "true" || v === "on" || v === "yes";
 }
 
+/** Short stable suffix derived from caption text, used in cache keys for superhero-mode POG posts. */
+export function computeCaptionHashSuffix(caption: string): string {
+  return sha256Hex(caption.trim()).slice(0, 12);
+}
+
 /**
  * Stable cache key for background plates: post_type + style_pack + style_version + season/week (if present) + optional identifiers.
  * For weekly_power_rankings, one key per week so all 10 slides reuse the same plate.
@@ -42,9 +47,7 @@ export function getBackgroundCacheKey(
   styleVersion: number,
   payload: Record<string, unknown>,
   storyHashSuffix?: string | null,
-  captionHashSuffix?: string | null,
-  /** Separates superhero art-only plates from abstract POG backgrounds for the same match. */
-  playerOfGameSuperhero?: boolean
+  captionHashSuffix?: string | null
 ): string {
   const parts: string[] = [postType, stylePack, String(styleVersion)];
   if (postType === "weekly_power_rankings" && payload.week_label) {
@@ -55,9 +58,6 @@ export function getBackgroundCacheKey(
   }
   if (postType === "player_of_game" && payload.match_id) {
     parts.push(String(payload.match_id));
-    if (playerOfGameSuperhero) {
-      parts.push("pog_superhero_v3");
-    }
   }
   if (postType === "beat_writer_milestone_flash") {
     parts.push(String(payload.writer_name ?? payload.beat_writer_name ?? ""));
@@ -80,12 +80,16 @@ export function getBackgroundCacheKey(
  * the final prompt used.
  */
 export async function generateBackground(params: GenerateBackgroundParams): Promise<GenerateBackgroundResult> {
-  const { postType, stylePack, cacheKey, payload, gameStory } = params;
+  const { postType, stylePack, cacheKey, payload, gameStory, caption } = params;
 
-  const useSuperhero = postType === "player_of_game" && isSuperheroModeEnabled();
+  const useSuperhero =
+    postType === "player_of_game" &&
+    isSuperheroModeEnabled() &&
+    typeof caption === "string" &&
+    caption.trim().length > 0;
 
   if (useSuperhero) {
-    const superheroPrompt = buildSuperheroArtPrompt();
+    const superheroPrompt = buildSuperheroPrompt(caption!.trim());
     const buffer = await generateImage(superheroPrompt);
     const r2Key = `lba/bg/${stylePack}/${cacheKey}.png`;
     const imageUrl = await uploadBuffer(r2Key, buffer, "image/png");
