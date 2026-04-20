@@ -3,6 +3,8 @@ import { buildBgPrompt, buildSuperheroPrompt, type PostType, type StylePack } fr
 import { generateImage } from "./imageClient.js";
 import { uploadBuffer } from "../storage/r2.js";
 import { augmentBackgroundPromptWithGameStory } from "../../ai/gameStoryBackgroundAugment.js";
+import { captionForHeroOverlay } from "../render/templateData.js";
+import type { PlayerOfGamePayload } from "../util/validate.js";
 
 export type { PostType, StylePack };
 
@@ -13,8 +15,10 @@ export interface GenerateBackgroundParams {
   payload: Record<string, unknown>;
   /** Pre-resolved game story text (from payload or DB). When present, a Gemini augment step runs before image generation. */
   gameStory?: string | null;
-  /** Generated AI caption text. When present and superhero mode is enabled for player_of_game, the caption drives the image prompt. */
+  /** Generated AI caption text. When present and superhero mode is enabled for player_of_game, the caption drives the image mood in the prompt. */
   caption?: string | null;
+  /** Merged caption (for superhero: deduped quote + cache alignment). */
+  mergedCaption?: string | null;
 }
 
 export interface GenerateBackgroundResult {
@@ -35,6 +39,15 @@ export function isSuperheroModeEnabled(): boolean {
 /** Short stable suffix derived from caption text, used in cache keys for superhero-mode POG posts. */
 export function computeCaptionHashSuffix(caption: string): string {
   return sha256Hex(caption.trim()).slice(0, 12);
+}
+
+/** Cache key suffix when superhero prompt includes stat line + quote context. */
+export function computeSuperheroPromptCacheSuffix(input: {
+  moodCaption: string;
+  statLine: string;
+  quote: string;
+}): string {
+  return sha256Hex(`${input.moodCaption}|${input.statLine}|${input.quote}`).slice(0, 12);
 }
 
 /**
@@ -80,7 +93,7 @@ export function getBackgroundCacheKey(
  * the final prompt used.
  */
 export async function generateBackground(params: GenerateBackgroundParams): Promise<GenerateBackgroundResult> {
-  const { postType, stylePack, cacheKey, payload, gameStory, caption } = params;
+  const { postType, stylePack, cacheKey, payload, gameStory, caption, mergedCaption } = params;
 
   const useSuperhero =
     postType === "player_of_game" &&
@@ -89,7 +102,19 @@ export async function generateBackground(params: GenerateBackgroundParams): Prom
     caption.trim().length > 0;
 
   if (useSuperhero) {
-    const superheroPrompt = buildSuperheroPrompt(caption!.trim());
+    const p = payload as PlayerOfGamePayload;
+    const quoteSrc = mergedCaption ?? caption!;
+    const quote = captionForHeroOverlay(quoteSrc, {
+      statLine: p.stat_line,
+      playerName: p.player_name,
+    });
+    const superheroPrompt = buildSuperheroPrompt({
+      moodCaption: caption!.trim(),
+      playerName: p.player_name,
+      teamName: p.team_name,
+      statLine: p.stat_line,
+      quote,
+    });
     const buffer = await generateImage(superheroPrompt);
     const r2Key = `lba/bg/${stylePack}/${cacheKey}.png`;
     const imageUrl = await uploadBuffer(r2Key, buffer, "image/png");

@@ -66,24 +66,43 @@ export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptPar
   return `Abstract sports broadcast background, professional arena vibe. ${stylePart}. ${LBA_COLOR_DIRECTIVE}`;
 }
 
+export interface SuperheroPromptInput {
+  /** Mood / energy from the AI caption — not painted as readable text in-frame */
+  moodCaption: string;
+  playerName: string;
+  teamName: string;
+  statLine: string;
+  /** Deduped narrative for compositing; informs composition when non-empty */
+  quote: string;
+}
+
 /**
- * Build a superhero-themed "Match MVP" graphic prompt. Unlike `buildBgPrompt`,
- * this intentionally does NOT include BASE_RULES (which forbid text/logos) or
- * LBA_COLOR_DIRECTIVE. Readable name/stat/quote text is composited in Playwright;
- * the image model supplies art plus empty comic panels/bubbles only.
+ * Superhero MVP: illustration prompt includes canonical player/team/stats/quote
+ * so the scene matches; readable copy is composited in one bottom panel in post.
  */
-export function buildSuperheroPrompt(caption: string): string {
+export function buildSuperheroPrompt(input: SuperheroPromptInput): string {
+  const { moodCaption, playerName, teamName, statLine, quote } = input;
+  const quoteBlock =
+    quote.trim().length > 0
+      ? [`Narrative quote (for story context only; do not paint this text in the image):`, quote.trim(), ""]
+      : [];
+
   return [
     "Superhero themed Match MVP Graphic based on:",
     "",
-    caption,
+    "Scene mood and energy (atmosphere only — do not render this paragraph as visible text in the image):",
+    moodCaption,
     "",
+    "Canonical MVP facts (use to align the illustration — team colors, intensity; do not render these lines as readable typography in the image):",
+    `Player: ${playerName}`,
+    `Team: ${teamName}`,
+    `Stat line: ${statLine}`,
+    ...quoteBlock,
     "4:5 portrait aspect ratio (1080x1350).",
     "Comic book / superhero art style with bold line work, dynamic perspective, and halftone shading.",
-    "Do not render readable letters, numbers, or words for the player name, stat line, team name, or narrative quote — only empty comic-book speech bubbles and empty caption or narration boxes: white or very light interiors, bold black outlines, no glyphs inside those shapes.",
-    "Do not draw large empty white rectangles, blank horizontal bars, scoreboard row placeholders, or empty panels meant for headline text — keep the backdrop as continuous illustrated artwork (halftone, color fields, motion) with no white text-field blocks.",
-    "No footer band, no multi-line story paragraph, no invented statistics or PTS/REB/AST lines, no fake slogans, and no headers such as MATCH MVP or scoreboard titles — those are added in post.",
     "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!).",
+    "Reserve the bottom ~30% of the frame as ONE continuous horizontal band: dark navy-to-purple gradient or subtle halftone, low detail, no characters or limbs crossing into it, and no readable letters or numbers inside it — this single band will hold composited stat line + quote text.",
+    "Do not add separate speech bubbles, footer story paragraphs, white scoreboard strips, or duplicate stat lines elsewhere in the image.",
     "Leave the top-left corner and bottom-right corner relatively clean for a small league logo and date overlay.",
     "Color palette: deep navy, dynasty purple, championship gold, legacy violet. Premium sports broadcast energy, not amateur comic.",
   ].join("\n");

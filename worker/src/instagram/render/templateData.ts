@@ -125,7 +125,7 @@ export function playerOfGameHeroToTemplateData(
     team_logo: p.team_logo ?? "",
     league_logo: p.league_logo ?? "",
     hero_caption: escapeHtml(captionClean),
-    hero_caption_wrap_display: captionClean.length > 0 ? "block" : "none",
+    hero_quote_section_display: captionClean.length > 0 ? "block" : "none",
   };
 }
 

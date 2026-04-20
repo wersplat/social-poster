@@ -23,10 +23,11 @@ import {
   getBackgroundCacheKey,
   generateBackground,
   isSuperheroModeEnabled,
-  computeCaptionHashSuffix,
+  computeSuperheroPromptCacheSuffix,
   type PostType,
   type StylePack,
 } from "../ai/generateBackground.js";
+import { captionForHeroOverlay } from "../render/templateData.js";
 import { resolveGameStoryForAugment } from "../../ai/gameStoryBackgroundAugment.js";
 import { supabase } from "../supabase/client.js";
 import { parsePayload } from "../util/validate.js";
@@ -51,7 +52,8 @@ async function resolveBackgroundUrl(
     style_version: number | null;
     payload_json: unknown;
   },
-  caption?: string | null
+  caption?: string | null,
+  mergedCaption?: string | null
 ): Promise<string> {
   const stylePack = (post.bg_style_pack ?? "regular") as StylePack;
   const styleVersion = post.style_version ?? 1;
@@ -75,7 +77,20 @@ async function resolveBackgroundUrl(
         supabase,
       });
 
-  const captionHashSuffix = isSuperheroPog ? computeCaptionHashSuffix(caption!) : null;
+  let captionHashSuffix: string | null = null;
+  if (isSuperheroPog && caption?.trim()) {
+    const p = parsePayload("player_of_game", post.payload_json) as PlayerOfGamePayload;
+    const quoteSrc = mergedCaption ?? caption;
+    const quote = captionForHeroOverlay(quoteSrc, {
+      statLine: p.stat_line,
+      playerName: p.player_name,
+    });
+    captionHashSuffix = computeSuperheroPromptCacheSuffix({
+      moodCaption: caption.trim(),
+      statLine: p.stat_line,
+      quote,
+    });
+  }
 
   const cacheKey = getBackgroundCacheKey(
     post.post_type as PostType,
@@ -106,6 +121,7 @@ async function resolveBackgroundUrl(
       payload,
       gameStory: story,
       caption: isSuperheroPog ? caption : null,
+      mergedCaption: isSuperheroPog ? mergedCaption ?? caption : null,
     });
     await insertBgAsset({
       cache_key: cacheKey,
@@ -193,7 +209,7 @@ export async function renderPosts() {
 
         let bgImageUrl: string = post.bg_image_url ?? "";
         if (!bgImageUrl) {
-          bgImageUrl = await resolveBackgroundUrl(post, baseCaption);
+          bgImageUrl = await resolveBackgroundUrl(post, baseCaption, mergedCaption);
         }
         if (!bgImageUrl) {
           bgImageUrl = getFallbackBackgroundUrl();

@@ -72,8 +72,8 @@ export async function renderPlayerOfGame(payload: PlayerOfGamePayload, options?:
 }
 
 /**
- * Superhero mode: AI supplies art and empty comic panels; Playwright composites
- * player name, stat line, team, caption, plus league logo and date.
+ * Superhero mode: AI art + reserved bottom band; Playwright composites one panel
+ * (kicker, name, team, stat line, quote) plus league logo and date.
  */
 export async function renderPlayerOfGameHero(
   payload: PlayerOfGamePayload,
