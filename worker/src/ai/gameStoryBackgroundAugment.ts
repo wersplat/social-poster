@@ -15,8 +15,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { sha256Hex } from './hash.js'
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
-const DEFAULT_MODEL = 'gemini-2.5-flash'
-const DEFAULT_TEMPERATURE = 0.6
+const DEFAULT_MODEL = 'gemini-3-flash-preview'
+const DEFAULT_TEMPERATURE = 1.0
 const DEFAULT_MAX_OUTPUT_TOKENS = 2048
 const DEFAULT_TIMEOUT_MS = 20_000
 const MAX_STORY_CHARS = 6000

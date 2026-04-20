@@ -2,8 +2,8 @@ import { logger } from "../util/logger.js";
 import type { LLMResponseResult, LLMUsage } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_MODEL = "gemini-2.5-flash";
-const DEFAULT_TEMPERATURE = 0.6;
+const DEFAULT_MODEL = "gemini-3-flash-preview";
+const DEFAULT_TEMPERATURE = 1.0;
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_ATTEMPTS = 3;
