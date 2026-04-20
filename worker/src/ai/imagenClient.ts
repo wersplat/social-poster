@@ -1,6 +1,6 @@
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 const DEFAULT_MODEL = 'imagen-4.0-generate-001'
-const DEFAULT_ASPECT_RATIO = '4:5'
+const DEFAULT_ASPECT_RATIO = '3:4'
 const DEFAULT_TIMEOUT_MS = 60_000
 const MAX_RETRIES = 2
 
