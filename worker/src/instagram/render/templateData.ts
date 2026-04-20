@@ -53,12 +53,57 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** Strip hashtag tokens for on-image caption overlay (hashtags stay in the IG caption only). */
-export function captionForHeroOverlay(mergedCaption: string): string {
-  return mergedCaption
-    .replace(/#\w+/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeSpaces(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+export interface CaptionHeroOverlayOpts {
+  /** DB stat line — removed from bubble when caption echoes it */
+  statLine?: string;
+  /** Leading/trailing duplicate of display name removed from narrative */
+  playerName?: string;
+}
+
+/**
+ * Strip hashtags; remove stat line and duplicate name so the bubble is
+ * narrative-only (stats stay in the headline panel).
+ */
+export function captionForHeroOverlay(
+  mergedCaption: string,
+  opts?: CaptionHeroOverlayOpts
+): string {
+  let s = mergedCaption.replace(/#\w+/g, "");
+  s = normalizeSpaces(s);
+
+  const statLine = opts?.statLine?.trim() ?? "";
+  if (statLine.length > 0) {
+    s = s.replace(new RegExp(escapeRegex(normalizeSpaces(statLine)), "gi"), "");
+    const parts = statLine.split(/\s*\/\s*/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const flex = parts.map((p) => escapeRegex(p)).join("\\s*\\/\\s*");
+      s = s.replace(new RegExp(flex, "gi"), "");
+    }
+    s = s.replace(
+      /\b\d+\s*PTS\s*\/\s*\d+\s*REB\s*\/\s*\d+\s*AST(?:\s*\/\s*\d+\s*(?:STL|BLK)(?:\s*\/\s*\d+\s*(?:STL|BLK))?)?/gi,
+      ""
+    );
+    s = s.replace(/\b\d+\s*PTS\b\s*\/\s*\d+\s*REB\b/gi, "");
+  }
+
+  const name = opts?.playerName?.trim() ?? "";
+  if (name.length >= 2) {
+    s = s.replace(new RegExp(`^${escapeRegex(name)}\\s*[|:\\-–]\\s*`, "i"), "");
+    s = s.replace(new RegExp(`^${escapeRegex(name)}\\s+`, "i"), "");
+    s = s.replace(new RegExp(`\\s*${escapeRegex(name)}\\s*[|]\\s*`, "gi"), " ");
+  }
+
+  s = normalizeSpaces(s);
+  s = s.replace(/^[,;:.]\s*/g, "").replace(/\s*[,;]{2,}\s*/g, ", ");
+  return s;
 }
 
 /**
@@ -68,7 +113,10 @@ export function playerOfGameHeroToTemplateData(
   p: PlayerOfGamePayload,
   mergedCaption: string
 ): Record<string, unknown> {
-  const captionClean = captionForHeroOverlay(mergedCaption);
+  const captionClean = captionForHeroOverlay(mergedCaption, {
+    statLine: p.stat_line,
+    playerName: p.player_name,
+  });
   return {
     player_name: escapeHtml(p.player_name),
     stat_line: escapeHtml(p.stat_line),
