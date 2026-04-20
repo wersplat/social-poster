@@ -82,28 +82,33 @@ export interface SuperheroPromptInput {
  */
 export function buildSuperheroPrompt(input: SuperheroPromptInput): string {
   const { moodCaption, playerName, teamName, statLine, quote } = input;
-  const quoteBlock =
-    quote.trim().length > 0
-      ? [`Narrative quote (for story context only; do not paint this text in the image):`, quote.trim(), ""]
-      : [];
+  // Prose-only context — avoid "Player:", "Stat line:", or raw numbers so the model
+  // does not paint duplicate scoreboard UI in the lower band (Playwright adds real stats).
+  const toneBits = [
+    `Center the illustration on one heroic basketball figure whose energy fits ${teamName} and the player identity "${playerName}" (costume colors and vibe, not name tags).`,
+    statLine.trim()
+      ? "Convey a dominant scoring / playmaking performance through action and expression only — do not paint digits, slash stat rows, or the words PTS, REB, AST, STL, BLK anywhere."
+      : "",
+    quote.trim()
+      ? "Match the emotional beat of a clutch MVP night — do not render this or any narrative paragraph as visible text in the frame."
+      : "",
+  ].filter(Boolean);
 
   return [
     "Superhero themed Match MVP Graphic based on:",
     "",
-    "Scene mood and energy (atmosphere only — do not render this paragraph as visible text in the image):",
+    "Scene mood and energy (atmosphere only — do not render this block as legible text in the image):",
     moodCaption,
     "",
-    "Canonical MVP facts (use to align the illustration — team colors, intensity; do not render these lines as readable typography in the image):",
-    `Player: ${playerName}`,
-    `Team: ${teamName}`,
-    `Stat line: ${statLine}`,
-    ...quoteBlock,
+    ...toneBits,
+    "",
     "4:5 portrait aspect ratio (1080x1350).",
     "Comic book / superhero art style with bold line work, dynamic perspective, and halftone shading.",
     "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!).",
-    "Reserve the bottom ~30% of the frame as ONE continuous horizontal band: dark navy-to-purple gradient or subtle halftone, low detail, no characters or limbs crossing into it, and no readable letters or numbers inside it — this single band will hold composited stat line + quote text.",
-    "Do not add separate speech bubbles, footer story paragraphs, white scoreboard strips, or duplicate stat lines elsewhere in the image.",
-    "Leave the top-left corner and bottom-right corner relatively clean for a small league logo and date overlay.",
+    "The bottom ~32% of the frame must be a flat, empty, untextured field: solid deep navy (#0f172a) to dark purple — no halftone dots, no lettering, no labels, no watermarks, no 'PLAYER', 'TEAM', 'STAT LINE', no stat numbers, no gray ghost text, no duplicate score rows, and no logos in that band.",
+    "The top-left ~140x140 px region must contain no logo, emblem, watermark, or text — only smooth background that will be covered in post.",
+    "Do not add footer story paragraphs or scoreboard strips outside that flat bottom field.",
+    "Leave the bottom-right corner relatively clear for a small date overlay.",
     "Color palette: deep navy, dynasty purple, championship gold, legacy violet. Premium sports broadcast energy, not amateur comic.",
   ].join("\n");
 }

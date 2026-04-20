@@ -12,20 +12,18 @@
       background-repeat: no-repeat;
       position: relative;
     }
-    /* Single bottom band: stats + quote (matches image prompt reserve zone) */
+    /* Opaque band — fully covers any AI ghost text/stat labels in the lower third */
     .hero-bottom-panel {
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
       z-index: 15;
-      padding: 28px 40px 36px;
-      background: linear-gradient(
-        to top,
-        rgba(15, 23, 42, 0.96) 0%,
-        rgba(15, 23, 42, 0.88) 55%,
-        rgba(15, 23, 42, 0) 100%
-      );
+      min-height: 460px;
+      padding: 32px 40px 40px;
+      background: #0f172a;
+      border-top: 1px solid rgba(251, 191, 36, 0.28);
+      box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.4);
       pointer-events: none;
       box-sizing: border-box;
     }
@@ -90,17 +88,24 @@
       word-break: break-word;
       text-align: center;
     }
-    .hero-league-logo {
+    .hero-league-brand {
       position: absolute;
-      top: 32px;
-      left: 32px;
-      width: 88px;
-      height: 88px;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
-      z-index: 20;
+      top: 20px;
+      left: 20px;
+      z-index: 25;
+      padding: 12px 14px;
+      background: #0f172a;
+      border-radius: 16px;
+      border: 2px solid rgba(251, 191, 36, 0.42);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
     }
-    .hero-league-logo.logo-empty { display: none; }
+    .hero-league-brand.logo-empty { display: none; }
+    .hero-league-logo {
+      display: block;
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+    }
     .hero-date {
       position: absolute;
       bottom: 28px;
@@ -112,11 +117,14 @@
       color: #ffffff;
       text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
       font-family: system-ui, -apple-system, sans-serif;
-      z-index: 20;
+      z-index: 25;
     }
   </style>
 </head>
 <body>
+  <div class="hero-league-brand">
+    <img class="hero-league-logo" src="{{league_logo}}" alt="" onerror="this.closest('.hero-league-brand')?.classList.add('logo-empty')">
+  </div>
   <div class="hero-bottom-panel">
     <div class="hero-kicker">PLAYER OF THE GAME</div>
     <div class="hero-player-name">{{player_name}}</div>
@@ -129,7 +137,6 @@
       <p class="hero-caption">{{hero_caption}}</p>
     </div>
   </div>
-  <img class="hero-league-logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
   <div class="hero-date">{{date}}</div>
 </body>
 </html>
