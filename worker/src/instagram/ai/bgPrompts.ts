@@ -67,20 +67,18 @@ export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptPar
 }
 
 /**
- * Superhero MVP **background plate only**: comic illustration with no readable text.
- * Stats, name, and team are rendered by Playwright (`player_of_game_hero.html`) for accuracy.
- * (Image models hallucinate stats, duplicate lines, and paint resolution strings as visible text.)
+ * Superhero MVP **background plate only**: loud comic-book art; stats/names come from Playwright.
+ * Allows short comic impact words only — no player names, stats, quotes, or resolution strings.
  */
 export function buildSuperheroArtPrompt(): string {
   return [
-    "Illustration only — a vertical 4:5 portrait comic-book / superhero basketball scene.",
-    "CRITICAL: Do not render ANY text, letters, numbers, logos, watermarks, captions, speech bubbles with words, sound-effect words, or UI.",
-    "No resolution labels (e.g. 1080x1350), no hashtags, no stat lines, no names — absolutely zero typography or symbols that look like writing.",
-    "Use only abstract comic visuals: halftone dots, speed lines, starburst shapes without letters, motion streaks, energy auras.",
-    "One athletic basketball player figure in dynamic action (dunk, crossover, or jump shot), superhero proportions and heroic pose.",
-    "Dramatic lighting; deep navy and dynasty purple shadows; championship gold and legacy violet as accent highlights only.",
-    "Composition: keep the lower third slightly calmer (darker or simpler) so overlaid text will read later; keep top corners uncluttered.",
-    "Style: premium sports broadcast energy, bold ink-like outlines, halftone shading — not childish or cluttered.",
+    "Illustration only — a vertical 4:5 portrait. It must read as a real comic book / superhero cover, not a flat stock photo.",
+    "Comic book / superhero art style with bold line work, dynamic perspective, and halftone shading.",
+    "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!) in classic comic lettering bursts — short onomatopoeia only, never sentences.",
+    "CRITICAL — do NOT render: player or team names, gamertags, stat lines, scores, dates, hashtags, league logos, watermarks, UI, speech bubbles with dialogue, or dimension labels (e.g. 1080x1350). Those are added in post; wrong text here ruins the graphic.",
+    "Halftone dots, speed lines, starbursts, motion streaks, energy auras, and exaggerated comic anatomy are encouraged — maximal superhero basketball energy.",
+    "Dramatic lighting; deep navy and dynasty purple shadows; championship gold and legacy violet as accent highlights.",
+    "Composition: keep the lower third relatively open and a bit darker so overlaid MVP text reads clearly; keep top corners uncluttered for a small logo overlay.",
     LBA_COLOR_DIRECTIVE,
   ].join("\n");
 }

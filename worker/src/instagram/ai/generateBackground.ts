@@ -56,7 +56,7 @@ export function getBackgroundCacheKey(
   if (postType === "player_of_game" && payload.match_id) {
     parts.push(String(payload.match_id));
     if (playerOfGameSuperhero) {
-      parts.push("pog_superhero_v2");
+      parts.push("pog_superhero_v3");
     }
   }
   if (postType === "beat_writer_milestone_flash") {
