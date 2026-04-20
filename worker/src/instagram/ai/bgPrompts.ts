@@ -67,25 +67,20 @@ export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptPar
 }
 
 /**
- * Build a superhero-themed "Match MVP" graphic prompt. Unlike `buildBgPrompt`,
- * this intentionally does NOT include BASE_RULES (which forbid text/logos) or
- * LBA_COLOR_DIRECTIVE — the image model should render the player name, stat
- * line, team name, and caption quote directly into the graphic with comic-book
- * typography and dynamic superhero art. Playwright will only overlay the
- * league logo and date after generation.
+ * Superhero MVP **background plate only**: comic illustration with no readable text.
+ * Stats, name, and team are rendered by Playwright (`player_of_game_hero.html`) for accuracy.
+ * (Image models hallucinate stats, duplicate lines, and paint resolution strings as visible text.)
  */
-export function buildSuperheroPrompt(caption: string): string {
+export function buildSuperheroArtPrompt(): string {
   return [
-    "Superhero themed Match MVP Graphic based on:",
-    "",
-    caption,
-    "",
-    "4:5 portrait aspect ratio (1080x1350).",
-    "Comic book / superhero art style with bold line work, dynamic perspective, and halftone shading.",
-    "Render the player name, stat line, and team name prominently as styled comic-book typography inside the graphic.",
-    "Include the caption quote (or a tight excerpt) as a styled narration caption box within the composition.",
-    "Feature a superhero-styled basketball player in a dynamic action pose with energy effects, motion lines, and impact words (e.g. SLAM!, BOOM!, SWISH!).",
-    "Leave the top-left corner and bottom-right corner relatively clean for a small league logo and date overlay.",
-    "Color palette: deep navy, dynasty purple, championship gold, legacy violet. Premium sports broadcast energy, not amateur comic.",
+    "Illustration only — a vertical 4:5 portrait comic-book / superhero basketball scene.",
+    "CRITICAL: Do not render ANY text, letters, numbers, logos, watermarks, captions, speech bubbles with words, sound-effect words, or UI.",
+    "No resolution labels (e.g. 1080x1350), no hashtags, no stat lines, no names — absolutely zero typography or symbols that look like writing.",
+    "Use only abstract comic visuals: halftone dots, speed lines, starburst shapes without letters, motion streaks, energy auras.",
+    "One athletic basketball player figure in dynamic action (dunk, crossover, or jump shot), superhero proportions and heroic pose.",
+    "Dramatic lighting; deep navy and dynasty purple shadows; championship gold and legacy violet as accent highlights only.",
+    "Composition: keep the lower third slightly calmer (darker or simpler) so overlaid text will read later; keep top corners uncluttered.",
+    "Style: premium sports broadcast energy, bold ink-like outlines, halftone shading — not childish or cluttered.",
+    LBA_COLOR_DIRECTIVE,
   ].join("\n");
 }

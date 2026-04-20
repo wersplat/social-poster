@@ -4,42 +4,123 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=1080, height=1350">
   <style>
-    /* Override the base centered flex layout. The AI image IS the graphic;
-       only the league logo (top-left) and date (bottom-right) are overlaid. */
+    /* Superhero plate = AI art only; typography is rendered here for correct stats/names. */
     body {
       display: block;
-      padding: 0;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
       position: relative;
+      padding: 0;
+      align-items: stretch;
+      justify-content: flex-start;
     }
-    .hero-league-logo {
+    .hero-top {
       position: absolute;
-      top: 32px;
-      left: 32px;
+      top: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+    }
+    .hero-top .logo {
       width: 88px;
       height: 88px;
       object-fit: contain;
-      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
     }
-    .hero-league-logo.logo-empty { display: none; }
+    .hero-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      padding: 40px 48px 52px;
+      text-align: center;
+      background: linear-gradient(
+        to top,
+        rgba(15, 23, 42, 0.97) 0%,
+        rgba(15, 23, 42, 0.88) 42%,
+        rgba(15, 23, 42, 0.35) 78%,
+        transparent 100%
+      );
+    }
+    .badge {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+      margin-bottom: 16px;
+    }
+    .name {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.12;
+      color: #fff;
+      text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.9),
+        0 0 28px rgba(0, 0, 0, 0.65);
+      margin-bottom: 14px;
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .stat {
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.35;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.96);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.88);
+      margin-bottom: 6px;
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .team-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .team-row .logo {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+    }
+    .team {
+      font-size: 26px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+    }
     .hero-date {
       position: absolute;
-      bottom: 28px;
-      right: 36px;
-      font-size: 22px;
+      bottom: 22px;
+      right: 32px;
+      z-index: 3;
+      font-size: 20px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #ffffff;
-      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+      color: rgba(255, 255, 255, 0.82);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
       font-family: system-ui, -apple-system, sans-serif;
     }
   </style>
 </head>
 <body>
-  <img class="hero-league-logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  <div class="hero-top">
+    <img class="logo" src="{{league_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+  </div>
+  <div class="hero-panel">
+    <div class="badge">PLAYER OF THE GAME</div>
+    <div class="name">{{player_name}}</div>
+    <div class="stat">{{stat_line}}</div>
+    <div class="team-row">
+      <img class="logo" src="{{team_logo}}" alt="" onerror="this.classList.add('logo-empty')">
+      <div class="team">{{team_name}}</div>
+    </div>
+  </div>
   <div class="hero-date">{{date}}</div>
 </body>
 </html>

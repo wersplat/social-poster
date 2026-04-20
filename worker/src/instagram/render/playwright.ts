@@ -69,8 +69,8 @@ export async function renderPlayerOfGame(payload: PlayerOfGamePayload, options?:
 }
 
 /**
- * Superhero mode: the AI image is the full graphic (name, stats, caption, comic effects),
- * so we only overlay league logo (top-left) and date (bottom-right).
+ * Superhero mode: AI generates art-only comic plate (no in-image text). This template overlays
+ * league logo, PLAYER OF THE GAME, name, stat line, team — same data as regular POG.
  */
 export async function renderPlayerOfGameHero(
   payload: PlayerOfGamePayload,
