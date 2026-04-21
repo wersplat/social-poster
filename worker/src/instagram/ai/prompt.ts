@@ -75,6 +75,20 @@ function postTypeGuidance(postType: string): string {
     ].join("\n");
   }
 
+  if (postType.startsWith("announcement_")) {
+    return [
+      "Voice: League communications — this is a season milestone graphic (registration open, draft night, results, playoffs, champion, awards, or schedule) from the payload.",
+      "",
+      "Lead with the headline implied by post_type and payload.season (e.g. registration open, draft week, season results). Use payload.cta as the link target in narrative when natural.",
+      "",
+      "Do not invent dates, prize amounts, or URLs. Use only season, draft_date, combine_dates, prize_pool, cta, and other fields present in the payload.",
+      "",
+      "Hashtag priority: #LBA and #Legends in every post; add one context tag when it fits (#LBARegistration, #DraftDay, #Playoffs, etc.).",
+      "",
+      "Tone: 'pro' by default; 'hype' only for registration open or champion moments when the payload clearly supports it.",
+    ].join("\n");
+  }
+
   if (postType === "weekly_power_rankings") {
     return [
       "Voice: The league's most informed, most opinionated analyst. You have watched every game. You have seen the tape. These rankings are not a poll — they are a verdict. Deliver them like one.",

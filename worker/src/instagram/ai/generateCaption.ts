@@ -175,6 +175,9 @@ function buildFallbackHashtags(postType: string): string[] {
   if (postType === "beat_writer_milestone_flash") {
     return ["#LBA", "#Legends", "#Esports", "#Hoops", "#NYC"];
   }
+  if (postType.startsWith("announcement_")) {
+    return ["#LBA", "#Legends", "#Esports", "#Hoops", "#NYC"];
+  }
   return ["#LBA", "#Esports", "#NYC", "#Hoops", "#Highlights"];
 }
 
@@ -199,6 +202,11 @@ function buildFallbackAltText(postType: string, payload: unknown): string {
     const writer = String(payload.writer_name ?? payload.beat_writer_name ?? "Beat writer");
     const headline = String(payload.milestone_headline ?? payload.milestone ?? payload.headline ?? "Milestone");
     return `Beat writer milestone graphic: ${headline}. ${writer}.`;
+  }
+  if (postType.startsWith("announcement_") && isRecord(payload)) {
+    const season = String(payload.season ?? "Season");
+    const kindLabel = postType.replace("announcement_", "").replace(/_/g, " ");
+    return `LBA announcement graphic: ${season} — ${kindLabel}.`;
   }
   return "LBA esports graphic.";
 }

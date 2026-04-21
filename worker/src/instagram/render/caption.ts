@@ -1,3 +1,8 @@
+import {
+  buildAnnouncementCaption,
+  postTypeToKind,
+  type AnnouncementPayload,
+} from "../../announcements/templates.js";
 import type {
   BeatWriterMilestoneFlashPayload,
   FinalScorePayload,
@@ -28,6 +33,16 @@ export const deterministicCaption: CaptionGenerator = {
       const p = payload as BeatWriterMilestoneFlashPayload;
       const w = p.writer_name.trim();
       return w ? `${p.milestone_headline} — ${w} #LBA` : `${p.milestone_headline} #LBA`;
+    }
+    if (postType.startsWith("announcement_")) {
+      const kind = postTypeToKind(postType);
+      if (!kind) return "#LBA #Legends";
+      const p = payload as AnnouncementPayload;
+      try {
+        return `${buildAnnouncementCaption(kind, p)}\n\n#LBA #Legends`;
+      } catch {
+        return `#LBA #Legends ${p.season ?? ""}`.trim();
+      }
     }
     return "#LBA";
   },

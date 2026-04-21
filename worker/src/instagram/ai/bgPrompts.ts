@@ -2,6 +2,12 @@
  * Style pack presets for AI background generation.
  * All prompts must request no text, negative space in top third, subtle texture.
  */
+
+import {
+  buildBgPrompt as buildWorkerAnnouncementBgPrompt,
+  type StylePack as WorkerStylePack,
+} from "../../ai/bgPrompts.js";
+
 export type StylePack =
   | "regular"
   | "playoffs"
@@ -35,7 +41,14 @@ export type PostType =
   | "final_score"
   | "player_of_game"
   | "weekly_power_rankings"
-  | "beat_writer_milestone_flash";
+  | "beat_writer_milestone_flash"
+  | "announcement_registration"
+  | "announcement_draft"
+  | "announcement_results"
+  | "announcement_playoffs"
+  | "announcement_champion"
+  | "announcement_awards"
+  | "announcement_schedule";
 
 interface BuildBgPromptParams {
   postType: PostType;
@@ -48,6 +61,14 @@ interface BuildBgPromptParams {
  * Tailored by postType; enforces no text/logos and safe areas.
  */
 export function buildBgPrompt({ postType, stylePack, payload }: BuildBgPromptParams): string {
+  if (typeof postType === "string" && postType.startsWith("announcement_")) {
+    return buildWorkerAnnouncementBgPrompt({
+      postType,
+      stylePack: stylePack as WorkerStylePack,
+      payload,
+    });
+  }
+
   const styleAddon = STYLE_ADDONS[stylePack];
   const stylePart = `${styleAddon} ${BASE_RULES}`;
 

@@ -1,4 +1,5 @@
 import pLimit from "p-limit";
+import sharp from "sharp";
 import {
   fetchPostsToRender,
   updatePostRendered,
@@ -334,6 +335,28 @@ export async function renderPosts() {
           const url = await uploadBuffer(
             `posts/${post.id}/0.png`,
             buf,
+            "image/png"
+          );
+          assetUrls.push(url);
+        } else if (post.post_type.startsWith("announcement_")) {
+          const res = await fetch(renderOpts.bgImageUrl);
+          if (!res.ok) {
+            throw new Error(
+              `Announcement graphic fetch failed: ${res.status} ${res.statusText}`
+            );
+          }
+          const composedBuf = Buffer.from(await res.arrayBuffer());
+          const feedBuf = await sharp(composedBuf)
+            .resize(1080, 1350, {
+              fit: "contain",
+              position: "centre",
+              background: { r: 17, g: 17, b: 20, alpha: 1 },
+            })
+            .png()
+            .toBuffer();
+          const url = await uploadBuffer(
+            `posts/${post.id}/0.png`,
+            feedBuf,
             "image/png"
           );
           assetUrls.push(url);

@@ -78,6 +78,21 @@ export function getBackgroundCacheKey(
     if (payload.milestone_id) parts.push(String(payload.milestone_id));
     if (payload.match_id) parts.push(String(payload.match_id));
   }
+  if (
+    typeof postType === "string" &&
+    postType.startsWith("announcement_") &&
+    (payload.season_id || payload.season)
+  ) {
+    parts.push(String(payload.season_id ?? payload.season));
+    parts.push(String(payload.vibe ?? ""));
+    parts.push(String(payload.draft_date ?? ""));
+    parts.push(String(payload.combine_dates ?? ""));
+    parts.push(String(payload.prize_pool ?? ""));
+    parts.push(String(payload.headline_override ?? ""));
+    parts.push(String(payload.champion_team ?? ""));
+    parts.push(String(payload.award_name ?? ""));
+    parts.push(String(payload.recipient_name ?? ""));
+  }
   if (storyHashSuffix) {
     parts.push(`gs:${storyHashSuffix}`);
   }
@@ -128,7 +143,17 @@ export async function generateBackground(params: GenerateBackgroundParams): Prom
     postType,
   });
   const buffer = await generateImage(augment.finalPrompt);
+  let outBuf = buffer;
+  if (typeof postType === "string" && postType.startsWith("announcement_")) {
+    try {
+      const { composeAiPostGraphic } = await import("../../card-generator.js");
+      outBuf = await composeAiPostGraphic(postType, payload, buffer);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[instagram/ai] compose announcement graphic failed, using raw background:", msg);
+    }
+  }
   const r2Key = `lba/bg/${stylePack}/${cacheKey}.png`;
-  const imageUrl = await uploadBuffer(r2Key, buffer, "image/png");
+  const imageUrl = await uploadBuffer(r2Key, outBuf, "image/png");
   return { imageUrl, prompt: augment.finalPrompt, augmentMeta: augment.meta };
 }

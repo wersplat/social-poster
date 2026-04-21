@@ -40,6 +40,34 @@ export const PowerRankingsPayloadSchema = z.object({
 });
 export type PowerRankingsPayload = z.infer<typeof PowerRankingsPayloadSchema>;
 
+/** Payload for AI announcement graphics (X + Instagram); matches worker card-generator / DB trigger fields. */
+export const AnnouncementGraphicPayloadSchema = z
+  .object({
+    season: z.string().min(1),
+    cta: z.string(),
+    season_id: z.string().optional(),
+    league_id: z.string().optional(),
+    league_logo: z.string().nullish(),
+    cta_label: z.string().optional(),
+    vibe: z.string().optional(),
+    draft_date: z.string().optional(),
+    combine_dates: z.string().optional(),
+    prize_pool: z.string().optional(),
+    headline_override: z.string().optional(),
+    result_lines: z.array(z.string()).nullish(),
+    champion_team: z.string().optional(),
+    series_score: z.string().optional(),
+    award_name: z.string().optional(),
+    recipient_name: z.string().optional(),
+    recipient_stats: z.string().optional(),
+    game_count: z.string().optional(),
+    start_date: z.string().optional(),
+    bracket_size: z.string().optional(),
+  })
+  .passthrough();
+
+export type AnnouncementGraphicPayload = z.infer<typeof AnnouncementGraphicPayloadSchema>;
+
 /** Normalized payload for beat-writer milestone flash graphics (aliases accepted in raw JSON). */
 export type BeatWriterMilestoneFlashPayload = {
   /** May be empty when the DB row only stores `headline` (production beat-writer pipeline). */
@@ -115,13 +143,31 @@ export type PayloadJson =
   | { post_type: "final_score"; data: FinalScorePayload }
   | { post_type: "player_of_game"; data: PlayerOfGamePayload }
   | { post_type: "weekly_power_rankings"; data: PowerRankingsPayload }
-  | { post_type: "beat_writer_milestone_flash"; data: BeatWriterMilestoneFlashPayload };
+  | { post_type: "beat_writer_milestone_flash"; data: BeatWriterMilestoneFlashPayload }
+  | { post_type: "announcement_registration"; data: AnnouncementGraphicPayload }
+  | { post_type: "announcement_draft"; data: AnnouncementGraphicPayload }
+  | { post_type: "announcement_results"; data: AnnouncementGraphicPayload }
+  | { post_type: "announcement_playoffs"; data: AnnouncementGraphicPayload }
+  | { post_type: "announcement_champion"; data: AnnouncementGraphicPayload }
+  | { post_type: "announcement_awards"; data: AnnouncementGraphicPayload }
+  | { post_type: "announcement_schedule"; data: AnnouncementGraphicPayload };
+
+const ANNOUNCEMENT_IG_SCHEMAS: Record<string, z.ZodSchema> = {
+  announcement_registration: AnnouncementGraphicPayloadSchema,
+  announcement_draft: AnnouncementGraphicPayloadSchema,
+  announcement_results: AnnouncementGraphicPayloadSchema,
+  announcement_playoffs: AnnouncementGraphicPayloadSchema,
+  announcement_champion: AnnouncementGraphicPayloadSchema,
+  announcement_awards: AnnouncementGraphicPayloadSchema,
+  announcement_schedule: AnnouncementGraphicPayloadSchema,
+};
 
 const schemas: Record<string, z.ZodSchema> = {
   final_score: FinalScorePayloadSchema,
   player_of_game: PlayerOfGamePayloadSchema,
   weekly_power_rankings: PowerRankingsPayloadSchema,
   beat_writer_milestone_flash: BeatWriterMilestoneFlashPayloadSchema,
+  ...ANNOUNCEMENT_IG_SCHEMAS,
 };
 
 export function parsePayload(postType: string, raw: unknown): PayloadJson["data"] {
