@@ -35,6 +35,21 @@ test('registration scene is arena-first (no corkboard poster)', () => {
   assert.ok(scene.toLowerCase().includes('arena'))
 })
 
+test('registration scene bans perimeter LED ribbon pseudo-text', () => {
+  const scene = buildAnnouncementAiScene('registration', 'esports_2k')
+  assert.ok(scene.toLowerCase().includes('ribbon'))
+  assert.ok(scene.toLowerCase().includes('championship'))
+})
+
+test('full registration prompt includes anti-bowl-band rules', () => {
+  const prompt = buildBgPrompt({
+    postType: 'announcement_registration',
+    stylePack: 'regular',
+    payload: { vibe: 'esports_2k' },
+  })
+  assert.ok(prompt.toLowerCase().includes('horizontal neon'))
+})
+
 test('defaultRegistrationOpeningCaption interpolates season and URL', () => {
   const s = defaultRegistrationOpeningCaption({ season: 'Season 3', cta: 'lba.gg' })
   assert.ok(s.includes('Season 3 registration is now open'))

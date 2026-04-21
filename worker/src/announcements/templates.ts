@@ -61,7 +61,7 @@ export interface AnnouncementPayload {
 
 const VIBE_SCENES: Record<AnnouncementVibe, string> = {
   esports_2k:
-    'High-energy esports basketball arena at night: dramatic spotlights from above, glowing hardwood court with strong reflections, subtle crowd silhouettes in deep shadow, motion streaks and light flares around the court plane, subtle particle haze in the beams. Slight NBA 2K–inspired stylization — sharp edges, glossy surfaces, cartoon-real hybrid, strong depth and implied motion. Neon accent light in green and championship gold on structural elements only — no text or logos in-world.',
+    'High-energy esports basketball arena at night: dramatic spotlights from above, glowing hardwood court with strong reflections, subtle crowd silhouettes in deep shadow, motion streaks and light flares around the court plane, subtle particle haze in the beams. Slight NBA 2K–inspired stylization — sharp edges, glossy surfaces, cartoon-real hybrid, strong depth and implied motion. Color accents only as soft green and warm amber rim wash on the court floor and lower apron — not on arena walls, seating fascias, or any horizontal band that could resemble lettering. No text or logos in-world.',
   luxury:
     'Minimal luxury sports broadcast plate: matte black and deep charcoal planes, fine gold edge lighting on geometric panels, single soft overhead spot on empty court surface far below, no characters, no clutter. Premium tournament broadcast aesthetic — restrained, expensive, calm power.',
   hype:
@@ -76,7 +76,7 @@ const VIBE_SCENES: Record<AnnouncementVibe, string> = {
 
 const KIND_SCENES: Record<AnnouncementKind, string> = {
   registration:
-    'Indoor basketball arena at night built for a league promo still: dark stands fading to silhouette, polished hardwood court as the hero plane, soft upper-center atmospheric haze with calmer detail so overlays read cleanly — premium broadcast energy, street-court soul implied by lighting only, no props that read as flyers, bulletin boards, or loose paper on walls.',
+    'Indoor basketball arena at night built for a league promo still: dark stands fading to silhouette, polished hardwood court as the hero plane, soft upper-center atmospheric haze with calmer detail so overlays read cleanly — premium broadcast energy, street-court soul implied by lighting only. Sideline advertising panels, upper-bowl fascia, and ring-level ribbon zones must read as unlit matte shadow — no LED rings, no continuous horizontal neon wrapping the bowl, no marquee strips. No props that read as flyers, bulletin boards, or loose paper on walls.',
   draft:
     'Draft-night tension: sightlines toward a focal stage or center circle as if awaiting picks, broadcast truss and overhead grid barely visible, anticipation in the lighting.',
   results:
@@ -275,15 +275,22 @@ export function buildAnnouncementCaption(kind: AnnouncementKind, payload: Announ
 }
 
 /** Scene description for OpenAI/Imagen (no typography). */
+const REGISTRATION_ANTI_RIBBON =
+  'Absolutely no arena bowl LED rings, perimeter ribbon tickers, or horizontal neon fascia that could look like words, letters, or garbled pseudo-text (including mangled CHAMPIONSHIP-style smears). Keep all sideline and concourse ad surfaces dark and texture-free.'
+
 export function buildAnnouncementAiScene(
   kind: AnnouncementKind,
   vibe: AnnouncementVibe
 ): string {
-  return `${KIND_SCENES[kind]} ${VIBE_SCENES[vibe]}`
+  const base = `${KIND_SCENES[kind]} ${VIBE_SCENES[vibe]}`
+  if (kind === 'registration') {
+    return `${base} ${REGISTRATION_ANTI_RIBBON}`
+  }
+  return base
 }
 
 const ANNOUNCEMENT_BG_RULES =
-  'No text, letters, numbers, logos, watermarks, UI, scoreboards, or written symbols anywhere. Never paint words or labels such as HEADLINE, TITLE, SUBTITLE, BACKGROUND, PLATE, LAYER, MOCKUP, TEMPLATE, SIGN UP, URL, CHAMPIONSHIP, or any placeholder typography — no ribbon boards, aisle banners, jumbotron strips, or vertical pylons with legible words (including misspellings). The image must be purely environmental. Preserve a clean upper-center zone with softer detail for logo and headline overlay added later in post. Wide cinematic framing; strong contrast; physically plausible light.'
+  'No text, letters, numbers, logos, watermarks, UI, scoreboards, or written symbols anywhere. Never paint words or labels such as HEADLINE, TITLE, SUBTITLE, BACKGROUND, PLATE, LAYER, MOCKUP, TEMPLATE, SIGN UP, URL, CHAMPIONSHIP, PLAYOFFS, or any placeholder typography — no ribbon boards, aisle banners, jumbotron strips, continuous horizontal neon bands wrapping the seating bowl, or vertical pylons with legible or gibberish pseudo-words (including OCR-style letter smears). Fascia and ad-band zones must be unlit near-black void, not glowing strips. The image must be purely environmental. Preserve a clean upper-center zone with softer detail for logo and headline overlay added later in post. Wide cinematic framing; strong contrast; physically plausible light.'
 
 export function announcementBackgroundRules(): string {
   return ANNOUNCEMENT_BG_RULES
