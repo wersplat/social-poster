@@ -76,7 +76,7 @@ const VIBE_SCENES: Record<AnnouncementVibe, string> = {
 
 const KIND_SCENES: Record<AnnouncementKind, string> = {
   registration:
-  'High-end sports sign-up poster displayed on a corkboard — crisp modern design pinned with metal tacks, subtle depth and shadows, clean space for league branding and season details, soft spotlight lighting, blend of street basketball culture and premium esports presentation.',
+    'Indoor basketball arena at night built for a league promo still: dark stands fading to silhouette, polished hardwood court as the hero plane, soft upper-center atmospheric haze with calmer detail so overlays read cleanly — premium broadcast energy, street-court soul implied by lighting only, no props that read as flyers, bulletin boards, or loose paper on walls.',
   draft:
     'Draft-night tension: sightlines toward a focal stage or center circle as if awaiting picks, broadcast truss and overhead grid barely visible, anticipation in the lighting.',
   results:
@@ -260,7 +260,7 @@ export function buildAnnouncementAiScene(
 }
 
 const ANNOUNCEMENT_BG_RULES =
-  'No text, letters, numbers, logos, watermarks, UI, scoreboards, or written symbols anywhere. Preserve a clean upper-center zone with softer detail for logo and headline overlay in post. Wide cinematic framing; strong contrast; physically plausible light.'
+  'No text, letters, numbers, logos, watermarks, UI, scoreboards, or written symbols anywhere. Never paint words or labels such as HEADLINE, TITLE, SUBTITLE, BACKGROUND, PLATE, LAYER, MOCKUP, TEMPLATE, SIGN UP, URL, or any placeholder typography — the image must be purely environmental. Preserve a clean upper-center zone with softer detail for logo and headline overlay added later in post. Wide cinematic framing; strong contrast; physically plausible light.'
 
 export function announcementBackgroundRules(): string {
   return ANNOUNCEMENT_BG_RULES

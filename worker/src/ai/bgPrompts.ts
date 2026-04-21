@@ -66,7 +66,7 @@ export function buildBgPrompt(params: {
     const scene = buildAnnouncementAiScene(kind, vibe)
     const rules = announcementBackgroundRules()
     const brand = brandDirective()
-    return `Abstract basketball league announcement background plate — ${scene} ${rules} ${brand}`
+    return `Wide cinematic indoor basketball arena environment for a league promotional still — ${scene} ${rules} ${brand}`
   }
 
   const styleAddon = STYLE_ADDONS[stylePack]

@@ -700,7 +700,7 @@ async function announcementOverlayTree(
           color: colors.secondary,
           textAlign: 'center' as const,
           letterSpacing: 1,
-          maxWidth: 1000,
+          maxWidth: 920,
         },
       },
       line
@@ -724,8 +724,8 @@ async function announcementOverlayTree(
       {
         style: {
           paddingTop: 36,
-          paddingLeft: 48,
-          paddingRight: 48,
+          paddingLeft: 88,
+          paddingRight: 88,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -750,10 +750,11 @@ async function announcementOverlayTree(
             fontWeight: 700,
             color: colors.headline,
             textAlign: 'center' as const,
-            letterSpacing: 3,
-            lineHeight: 1.15,
-            maxWidth: 1100,
+            letterSpacing: 2,
+            lineHeight: 1.2,
+            maxWidth: 1000,
             textTransform: 'uppercase' as const,
+            textShadow: '0 2px 12px rgba(0,0,0,0.85)',
           },
         },
         headline
@@ -769,8 +770,8 @@ async function announcementOverlayTree(
           justifyContent: 'center',
           alignItems: 'center',
           gap: 10,
-          paddingLeft: 48,
-          paddingRight: 48,
+          paddingLeft: 88,
+          paddingRight: 88,
         },
       },
       ...lineEls
@@ -780,8 +781,8 @@ async function announcementOverlayTree(
       {
         style: {
           paddingBottom: 44,
-          paddingLeft: 48,
-          paddingRight: 48,
+          paddingLeft: 88,
+          paddingRight: 88,
           paddingTop: 24,
           display: 'flex',
           flexDirection: 'column',
@@ -815,11 +816,12 @@ async function announcementOverlayTree(
             'div',
             {
               style: {
-                fontSize: 22,
+                fontSize: 26,
                 fontWeight: 600,
-                color: '#c8c8d8',
+                color: '#e8e8f0',
                 textAlign: 'center' as const,
-                maxWidth: 1000,
+                maxWidth: 920,
+                textShadow: '0 1px 8px rgba(0,0,0,0.9)',
               },
             },
             urlLine
