@@ -203,6 +203,16 @@ function buildFallbackAltText(postType: string, payload: unknown): string {
     const headline = String(payload.milestone_headline ?? payload.milestone ?? payload.headline ?? "Milestone");
     return `Beat writer milestone graphic: ${headline}. ${writer}.`;
   }
+  if (postType === "announcement_registration" && isRecord(payload)) {
+    const season = String(payload.season ?? "this season");
+    const url =
+      typeof payload.cta === "string" && payload.cta.includes("://")
+        ? payload.cta.trim()
+        : typeof payload.cta === "string" && payload.cta.trim()
+          ? `https://${payload.cta.trim()}`
+          : "https://lba.gg";
+    return `Registration open graphic for ${season}. Call to action: sign up at ${url}.`;
+  }
   if (postType.startsWith("announcement_") && isRecord(payload)) {
     const season = String(payload.season ?? "Season");
     const kindLabel = postType.replace("announcement_", "").replace(/_/g, " ");

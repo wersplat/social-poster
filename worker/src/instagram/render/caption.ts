@@ -1,5 +1,6 @@
 import {
   buildAnnouncementCaption,
+  defaultRegistrationOpeningCaption,
   postTypeToKind,
   type AnnouncementPayload,
 } from "../../announcements/templates.js";
@@ -33,6 +34,14 @@ export const deterministicCaption: CaptionGenerator = {
       const p = payload as BeatWriterMilestoneFlashPayload;
       const w = p.writer_name.trim();
       return w ? `${p.milestone_headline} — ${w} #LBA` : `${p.milestone_headline} #LBA`;
+    }
+    if (postType === "announcement_registration") {
+      const p = payload as AnnouncementPayload;
+      try {
+        return `${defaultRegistrationOpeningCaption(p)}\n\n#LBA #Legends`;
+      } catch {
+        return `#LBA #Legends ${p.season ?? ""}`.trim();
+      }
     }
     if (postType.startsWith("announcement_")) {
       const kind = postTypeToKind(postType);

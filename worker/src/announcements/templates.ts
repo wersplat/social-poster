@@ -235,6 +235,29 @@ function collapseBlankLines(s: string): string {
   return s.replace(/\n{3,}/g, '\n\n').trim()
 }
 
+/** Human-readable season for prose (e.g. "Season 3" from "Season 3" or "3"). */
+export function seasonLabelForProse(season: string): string {
+  const t = season.trim()
+  if (!t) return 'This season'
+  if (/^\d+$/.test(t)) return `Season ${t}`
+  return t
+}
+
+export function ctaUrlForCaption(cta: string): string {
+  const c = cta.trim()
+  if (!c) return 'https://lba.gg'
+  return c.startsWith('http') ? c : `https://${c}`
+}
+
+/** Official registration-open narrative (IG fallback / deterministic; interpolates season + CTA). */
+export function defaultRegistrationOpeningCaption(
+  payload: Pick<AnnouncementPayload, 'season' | 'cta'>
+): string {
+  const seasonLabel = seasonLabelForProse(payload.season)
+  const url = ctaUrlForCaption(payload.cta)
+  return `${seasonLabel} registration is now open. The path to becoming a Legend begins here. Secure your place in the LBA and prove your skill on the court. Sign up at ${url}`
+}
+
 export function buildAnnouncementCaption(kind: AnnouncementKind, payload: AnnouncementPayload): string {
   const emoji = EMOJI_BY_KIND[kind]
   const headline = defaultHeadline(kind, payload)
@@ -260,7 +283,7 @@ export function buildAnnouncementAiScene(
 }
 
 const ANNOUNCEMENT_BG_RULES =
-  'No text, letters, numbers, logos, watermarks, UI, scoreboards, or written symbols anywhere. Never paint words or labels such as HEADLINE, TITLE, SUBTITLE, BACKGROUND, PLATE, LAYER, MOCKUP, TEMPLATE, SIGN UP, URL, or any placeholder typography — the image must be purely environmental. Preserve a clean upper-center zone with softer detail for logo and headline overlay added later in post. Wide cinematic framing; strong contrast; physically plausible light.'
+  'No text, letters, numbers, logos, watermarks, UI, scoreboards, or written symbols anywhere. Never paint words or labels such as HEADLINE, TITLE, SUBTITLE, BACKGROUND, PLATE, LAYER, MOCKUP, TEMPLATE, SIGN UP, URL, CHAMPIONSHIP, or any placeholder typography — no ribbon boards, aisle banners, jumbotron strips, or vertical pylons with legible words (including misspellings). The image must be purely environmental. Preserve a clean upper-center zone with softer detail for logo and headline overlay added later in post. Wide cinematic framing; strong contrast; physically plausible light.'
 
 export function announcementBackgroundRules(): string {
   return ANNOUNCEMENT_BG_RULES

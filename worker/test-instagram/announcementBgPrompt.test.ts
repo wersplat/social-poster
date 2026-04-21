@@ -1,7 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildBgPrompt } from '../src/ai/bgPrompts.js'
-import { announcementBackgroundRules, buildAnnouncementAiScene } from '../src/announcements/templates.js'
+import {
+  announcementBackgroundRules,
+  buildAnnouncementAiScene,
+  defaultRegistrationOpeningCaption,
+  seasonLabelForProse,
+} from '../src/announcements/templates.js'
 
 test('announcement registration bg prompt avoids plate/corkboard scaffolding', () => {
   const prompt = buildBgPrompt({
@@ -28,4 +33,16 @@ test('registration scene is arena-first (no corkboard poster)', () => {
   assert.ok(!scene.toLowerCase().includes('corkboard'))
   assert.ok(!scene.toLowerCase().includes('cork board'))
   assert.ok(scene.toLowerCase().includes('arena'))
+})
+
+test('defaultRegistrationOpeningCaption interpolates season and URL', () => {
+  const s = defaultRegistrationOpeningCaption({ season: 'Season 3', cta: 'lba.gg' })
+  assert.ok(s.includes('Season 3 registration is now open'))
+  assert.ok(s.includes('https://lba.gg'))
+  assert.ok(s.includes('Legend'))
+})
+
+test('seasonLabelForProse handles numeric season', () => {
+  assert.equal(seasonLabelForProse('3'), 'Season 3')
+  assert.equal(seasonLabelForProse('Season 3'), 'Season 3')
 })
