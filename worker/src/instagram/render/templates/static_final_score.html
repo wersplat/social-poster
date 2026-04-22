@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1350">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      width: 1080px; height: 1350px;
+      background: #3b2d5c;
+      color: #f5f2eb;
+      display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+    }
+    .scrim {
+      position: absolute; inset: 0;
+      background: #120c1e; opacity: 0.50;
+    }
+    .content {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      width: 100%; height: 100%;
+    }
+    .logo-wrap {
+      display: flex; justify-content: center;
+      padding-top: 50px;
+    }
+    .logo { width: 100px; height: 120px; object-fit: contain; border-radius: 12px; }
+    .logo:not([src]), .logo[src=""] { display: none; }
+    .pill-wrap { display: flex; justify-content: center; margin-top: 24px; }
+    .pill {
+      background: #c8314f; border-radius: 14px;
+      padding: 10px 36px;
+      font-size: 28px; font-weight: 700; color: #f5f2eb;
+      text-align: center; letter-spacing: 1px;
+    }
+    .scores {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; padding: 0 90px; gap: 0;
+    }
+    .team-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .team-name { font-size: 72px; font-weight: 700; }
+    .team-score { font-size: 130px; font-weight: 700; }
+    .home-name { color: #f0c75e; }
+    .home-score { color: #f5f2eb; }
+    .away-name { color: #9b8bb4; }
+    .away-score { color: #9b8bb4; }
+    .gold-bar {
+      width: calc(100% - 180px); height: 4px;
+      background: #f0c75e; margin: 12px auto;
+    }
+    .performer-band {
+      width: 100%; height: 150px;
+      background: #1a2744; position: relative;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .performer-band .gold-accent {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 4px; background: #f0c75e;
+    }
+    .kicker {
+      font-size: 18px; font-weight: 600; color: #f0c75e;
+      letter-spacing: 3px;
+    }
+    .performer-line {
+      font-size: 34px; font-weight: 700; color: #f5f2eb;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="scrim"></div>
+  <div class="content">
+    <div class="logo-wrap">
+      <img class="logo" src="{{league_logo}}" alt="" onerror="this.style.display='none'">
+    </div>
+    <div class="pill-wrap">
+      <div class="pill">{{pill_text}}</div>
+    </div>
+    <div class="scores">
+      <div class="team-row">
+        <div class="team-name home-name">{{home_team}}</div>
+        <div class="team-score home-score">{{home_score}}</div>
+      </div>
+      <div class="gold-bar"></div>
+      <div class="team-row">
+        <div class="team-name away-name">{{away_team}}</div>
+        <div class="team-score away-score">{{away_score}}</div>
+      </div>
+    </div>
+    <div class="performer-band">
+      <div class="gold-accent"></div>
+      <div class="kicker">KEY PERFORMER</div>
+      <div class="performer-line">{{key_performer_line}}</div>
+    </div>
+  </div>
+</body>
+</html>

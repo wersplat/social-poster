@@ -287,7 +287,7 @@ export function createServer() {
           ? { ...(raw as Record<string, unknown>) }
           : {}
       const incoming = pp as Record<string, unknown>
-      for (const k of ['generate_image', 'style_pack', 'style_version'] as const) {
+      for (const k of ['generate_image', 'use_static_template', 'style_pack', 'style_version'] as const) {
         if (k in incoming) cur[k] = incoming[k]
       }
       patch.payload_json = cur
@@ -554,6 +554,7 @@ export function createServer() {
           ? body.style_version
           : 1,
     }
+    if (body.use_static_template === true) payload.use_static_template = true
 
     if (seasonId) payload.season_id = seasonId
     if (typeof body.draft_date === 'string' && body.draft_date.trim()) {
@@ -726,6 +727,8 @@ export function createServer() {
 
     if (body.generate_image === false) payload_json.generate_image = false
     if (body.generate_image === true) payload_json.generate_image = true
+    if (body.use_static_template === true) payload_json.use_static_template = true
+    if (body.use_static_template === false) payload_json.use_static_template = false
 
     const sp = body.style_pack
     if (typeof sp === 'string' && sp.trim()) payload_json.style_pack = sp.trim()

@@ -30,11 +30,13 @@ type MatchRow = {
   team_b: TeamRef
 }
 
-function loadFonts(): { name: string; data: Buffer; weight: 400 | 700; style: 'normal' }[] {
+function loadFonts(): { name: string; data: Buffer; weight: 400 | 600 | 700; style: 'normal' }[] {
   const regular = join(__dirname, '../fonts/Inter-Regular.ttf')
+  const semibold = join(__dirname, '../fonts/Inter-SemiBold.ttf')
   const bold = join(__dirname, '../fonts/Inter-Bold.ttf')
   return [
     { name: 'Inter', data: readFileSync(regular), weight: 400, style: 'normal' },
+    { name: 'Inter', data: readFileSync(semibold), weight: 600, style: 'normal' },
     { name: 'Inter', data: readFileSync(bold), weight: 700, style: 'normal' },
   ]
 }
@@ -49,7 +51,7 @@ function getFonts() {
 export const CARD_WIDTH = 1200
 export const CARD_HEIGHT = 630
 
-async function renderSatoriToPng(width: number, height: number, tree: ReactElement): Promise<Buffer> {
+export async function renderSatoriToPng(width: number, height: number, tree: ReactElement): Promise<Buffer> {
   const svg = await satori(tree, {
     width,
     height,
@@ -188,7 +190,7 @@ async function rasterizeRasterWithSharp(buf: Buffer, maxSide: number): Promise<s
 }
 
 /** Fetch remote / decode data URL and produce a PNG data URL for Satori <img>. */
-async function fetchImageDataUrl(
+export async function fetchImageDataUrl(
   url: string | null | undefined,
   maxSide: number
 ): Promise<string | null> {
@@ -261,7 +263,7 @@ type MatchTeamsRow = {
   team_b: { name: string; logo_url: string | null } | null
 }
 
-async function resolveFinalScoreGraphic(p: Record<string, unknown>) {
+export async function resolveFinalScoreGraphic(p: Record<string, unknown>) {
   const mid = typeof p.match_id === 'string' ? p.match_id : null
   if (mid) {
     const { data, error } = await supabase

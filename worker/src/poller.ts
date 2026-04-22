@@ -5,7 +5,8 @@ import {
 import { generateGameCard } from './card-generator.js'
 import { supabase } from './db.js'
 import { publishToX } from './publisher.js'
-import { isR2Configured } from './r2.js'
+import { isR2Configured, uploadPublicPng } from './r2.js'
+import { generateStaticCard } from './static-card-generator.js'
 import { resolvePostBody } from './templates.js'
 import type { ScheduledPost } from './types.js'
 
@@ -121,6 +122,23 @@ async function processPendingPosts() {
           working = { ...working, bg_image_url: cardUrl }
         } catch (e) {
           console.warn('[poller] card gen failed, continuing text-only:', e)
+        }
+      }
+
+      if (working.payload_json.use_static_template && !working.bg_image_url) {
+        try {
+          const buf = await generateStaticCard(
+            working.post_type,
+            working.payload_json as Record<string, unknown>
+          )
+          const url = await uploadPublicPng(`static/${working.id}.png`, buf)
+          await supabase
+            .from('scheduled_posts')
+            .update({ bg_image_url: url })
+            .eq('id', working.id)
+          working = { ...working, bg_image_url: url }
+        } catch (e) {
+          console.warn('[poller] static card failed, continuing text-only:', e)
         }
       }
 

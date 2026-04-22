@@ -9,8 +9,13 @@ import {
   playerOfGameHeroToTemplateData,
   powerRankingsSlideToTemplateData,
   beatWriterMilestoneFlashToTemplateData,
+  staticFinalScoreToTemplateData,
+  staticAnnouncementToTemplateData,
+  staticStandingsToTemplateData,
+  staticStatLeaderToTemplateData,
 } from "./templateData.js";
 import type {
+  AnnouncementGraphicPayload,
   BeatWriterMilestoneFlashPayload,
   FinalScorePayload,
   PlayerOfGamePayload,
@@ -118,6 +123,57 @@ export async function renderPowerRankings(payload: PowerRankingsPayload, options
     buffers.push(await renderPowerRankingsSlide(payload, i, options));
   }
   return buffers;
+}
+
+// --------------- Static template renders (Figma-spec, no AI bg) ---------------
+
+export interface StaticFinalScoreOpts {
+  seasonLabel?: string;
+  keyPerformerLine?: string;
+}
+
+export async function renderStaticFinalScore(
+  payload: FinalScorePayload,
+  opts?: StaticFinalScoreOpts
+): Promise<Buffer> {
+  const html = readFileSync(join(TEMPLATES_DIR, "static_final_score.html"), "utf-8");
+  const data = staticFinalScoreToTemplateData(payload, opts);
+  return renderHtml(html, data);
+}
+
+export async function renderStaticAnnouncement(
+  postType: string,
+  payload: AnnouncementGraphicPayload
+): Promise<Buffer> {
+  const html = readFileSync(join(TEMPLATES_DIR, "static_announcement.html"), "utf-8");
+  const data = staticAnnouncementToTemplateData(postType, payload);
+  return renderHtml(html, data);
+}
+
+export interface StaticStandingsOpts {
+  conferenceLabel?: string;
+}
+
+export async function renderStaticStandings(
+  payload: PowerRankingsPayload,
+  opts?: StaticStandingsOpts
+): Promise<Buffer> {
+  const html = readFileSync(join(TEMPLATES_DIR, "static_standings.html"), "utf-8");
+  const data = staticStandingsToTemplateData(payload, opts);
+  return renderHtml(html, data);
+}
+
+export interface StaticStatLeaderOpts {
+  seasonLabel?: string;
+}
+
+export async function renderStaticStatLeader(
+  payload: PlayerOfGamePayload,
+  opts?: StaticStatLeaderOpts
+): Promise<Buffer> {
+  const html = readFileSync(join(TEMPLATES_DIR, "static_stat_leader.html"), "utf-8");
+  const data = staticStatLeaderToTemplateData(payload, opts);
+  return renderHtml(html, data);
 }
 
 async function renderHtml(html: string, data: Record<string, unknown>): Promise<Buffer> {

@@ -17,6 +17,10 @@ import {
   renderPowerRankings,
   renderBeatWriterMilestoneFlash,
   getFallbackBackgroundUrl,
+  renderStaticFinalScore,
+  renderStaticAnnouncement,
+  renderStaticStandings,
+  renderStaticStatLeader,
 } from "../render/playwright.js";
 import { processBoxscoreImage } from "../render/boxscore/processBoxscore.js";
 import { generateCaption } from "../ai/generateCaption.js";
@@ -33,6 +37,7 @@ import { resolveGameStoryForAugment } from "../../ai/gameStoryBackgroundAugment.
 import { supabase } from "../supabase/client.js";
 import { parsePayload } from "../util/validate.js";
 import type {
+  AnnouncementGraphicPayload,
   BeatWriterMilestoneFlashPayload,
   FinalScorePayload,
   PlayerOfGamePayload,
@@ -208,12 +213,17 @@ export async function renderPosts() {
           captionMeta.hashtags = mergedHashtags;
         }
 
+        const useStatic =
+          (post.payload_json as Record<string, unknown>).use_static_template === true;
+
         let bgImageUrl: string = post.bg_image_url ?? "";
-        if (!bgImageUrl) {
-          bgImageUrl = await resolveBackgroundUrl(post, baseCaption, mergedCaption);
-        }
-        if (!bgImageUrl) {
-          bgImageUrl = getFallbackBackgroundUrl();
+        if (!useStatic) {
+          if (!bgImageUrl) {
+            bgImageUrl = await resolveBackgroundUrl(post, baseCaption, mergedCaption);
+          }
+          if (!bgImageUrl) {
+            bgImageUrl = getFallbackBackgroundUrl();
+          }
         }
         const renderOpts: {
           bgImageUrl: string;
@@ -225,8 +235,9 @@ export async function renderPosts() {
         if (post.post_type === "final_score") {
           const fsPayload = payload as FinalScorePayload;
 
-          // Slide 1: existing branded Final Score graphic
-          const buf = await renderFinalScore(fsPayload, renderOpts);
+          const buf = useStatic
+            ? await renderStaticFinalScore(fsPayload)
+            : await renderFinalScore(fsPayload, renderOpts);
           const url = await uploadBuffer(
             `posts/${post.id}/0.png`,
             buf,
@@ -234,83 +245,87 @@ export async function renderPosts() {
           );
           assetUrls.push(url);
 
-          // Slide 2: processed boxscore screenshot (if available)
-          const boxscoreUrl =
-            fsPayload.boxscore_url ?? post.boxscore_source_url ?? null;
+          if (!useStatic) {
+            const boxscoreUrl =
+              fsPayload.boxscore_url ?? post.boxscore_source_url ?? null;
 
-          if (boxscoreUrl) {
-            // Idempotency: skip if already processed and not forcing regen
-            if (
-              post.boxscore_processed_feed_url &&
-              post.boxscore_status === "processed" &&
-              !post.force_regen
-            ) {
-              logger.debug("Reusing cached boxscore images", { id: post.id });
-              assetUrls.push(post.boxscore_processed_feed_url);
-            } else {
-              try {
-                const { feedBuffer, storyBuffer, preset } =
-                  await processBoxscoreImage({
-                    sourceUrl: boxscoreUrl,
-                    matchLabel: `${fsPayload.home_team} vs ${fsPayload.away_team}`,
-                    eventLabel: fsPayload.event_label ?? undefined,
-                    matchId: fsPayload.match_id,
-                    verifiedAt: post.created_at,
+            if (boxscoreUrl) {
+              if (
+                post.boxscore_processed_feed_url &&
+                post.boxscore_status === "processed" &&
+                !post.force_regen
+              ) {
+                logger.debug("Reusing cached boxscore images", { id: post.id });
+                assetUrls.push(post.boxscore_processed_feed_url);
+              } else {
+                try {
+                  const { feedBuffer, storyBuffer, preset } =
+                    await processBoxscoreImage({
+                      sourceUrl: boxscoreUrl,
+                      matchLabel: `${fsPayload.home_team} vs ${fsPayload.away_team}`,
+                      eventLabel: fsPayload.event_label ?? undefined,
+                      matchId: fsPayload.match_id,
+                      verifiedAt: post.created_at,
+                    });
+
+                  const feedUrl = await uploadBuffer(
+                    `boxscores/processed/${fsPayload.match_id}/feed.png`,
+                    feedBuffer,
+                    "image/png"
+                  );
+                  const storyUrl = await uploadBuffer(
+                    `boxscores/processed/${fsPayload.match_id}/story.png`,
+                    storyBuffer,
+                    "image/png"
+                  );
+
+                  assetUrls.push(feedUrl);
+
+                  await updateBoxscoreFields(post.id, {
+                    boxscore_source_url: boxscoreUrl,
+                    boxscore_processed_feed_url: feedUrl,
+                    boxscore_processed_story_url: storyUrl,
+                    boxscore_crop_preset: preset,
+                    boxscore_status: "processed",
+                    boxscore_error: null,
                   });
 
-                const feedUrl = await uploadBuffer(
-                  `boxscores/processed/${fsPayload.match_id}/feed.png`,
-                  feedBuffer,
-                  "image/png"
-                );
-                const storyUrl = await uploadBuffer(
-                  `boxscores/processed/${fsPayload.match_id}/story.png`,
-                  storyBuffer,
-                  "image/png"
-                );
-
-                assetUrls.push(feedUrl); // Slide 2 for carousel
-
-                await updateBoxscoreFields(post.id, {
-                  boxscore_source_url: boxscoreUrl,
-                  boxscore_processed_feed_url: feedUrl,
-                  boxscore_processed_story_url: storyUrl,
-                  boxscore_crop_preset: preset,
-                  boxscore_status: "processed",
-                  boxscore_error: null,
-                });
-
-                logger.info("Boxscore processed", {
-                  id: post.id,
-                  preset,
-                  matchId: fsPayload.match_id,
-                });
-              } catch (err) {
-                const msg =
-                  err instanceof Error ? err.message : String(err);
-                logger.warn("Boxscore processing failed, publishing slide 1 only", {
-                  id: post.id,
-                  err: msg,
-                });
-                await updateBoxscoreFields(post.id, {
-                  boxscore_source_url: boxscoreUrl,
-                  boxscore_status: "failed",
-                  boxscore_error: msg,
-                });
-                // Continue with just Slide 1
+                  logger.info("Boxscore processed", {
+                    id: post.id,
+                    preset,
+                    matchId: fsPayload.match_id,
+                  });
+                } catch (err) {
+                  const msg =
+                    err instanceof Error ? err.message : String(err);
+                  logger.warn("Boxscore processing failed, publishing slide 1 only", {
+                    id: post.id,
+                    err: msg,
+                  });
+                  await updateBoxscoreFields(post.id, {
+                    boxscore_source_url: boxscoreUrl,
+                    boxscore_status: "failed",
+                    boxscore_error: msg,
+                  });
+                }
               }
             }
           }
         } else if (post.post_type === "player_of_game") {
           const pogPayload = payload as PlayerOfGamePayload;
-          const useSuperhero =
-            isSuperheroModeEnabled() && baseCaption.trim().length > 0;
-          const buf = useSuperhero
-            ? await renderPlayerOfGameHero(pogPayload, {
-                ...renderOpts,
-                heroCaption: mergedCaption,
-              })
-            : await renderPlayerOfGame(pogPayload, renderOpts);
+          let buf: Buffer;
+          if (useStatic) {
+            buf = await renderStaticStatLeader(pogPayload);
+          } else {
+            const useSuperhero =
+              isSuperheroModeEnabled() && baseCaption.trim().length > 0;
+            buf = useSuperhero
+              ? await renderPlayerOfGameHero(pogPayload, {
+                  ...renderOpts,
+                  heroCaption: mergedCaption,
+                })
+              : await renderPlayerOfGame(pogPayload, renderOpts);
+          }
           const url = await uploadBuffer(
             `posts/${post.id}/0.png`,
             buf,
@@ -318,14 +333,24 @@ export async function renderPosts() {
           );
           assetUrls.push(url);
         } else if (post.post_type === "weekly_power_rankings") {
-          const bufs = await renderPowerRankings(payload as PowerRankingsPayload, renderOpts);
-          for (let i = 0; i < bufs.length; i++) {
+          if (useStatic) {
+            const buf = await renderStaticStandings(payload as PowerRankingsPayload);
             const url = await uploadBuffer(
-              `posts/${post.id}/${i}.png`,
-              bufs[i],
+              `posts/${post.id}/0.png`,
+              buf,
               "image/png"
             );
             assetUrls.push(url);
+          } else {
+            const bufs = await renderPowerRankings(payload as PowerRankingsPayload, renderOpts);
+            for (let i = 0; i < bufs.length; i++) {
+              const url = await uploadBuffer(
+                `posts/${post.id}/${i}.png`,
+                bufs[i],
+                "image/png"
+              );
+              assetUrls.push(url);
+            }
           }
         } else if (post.post_type === "beat_writer_milestone_flash") {
           const buf = await renderBeatWriterMilestoneFlash(
@@ -339,24 +364,32 @@ export async function renderPosts() {
           );
           assetUrls.push(url);
         } else if (post.post_type.startsWith("announcement_")) {
-          const res = await fetch(renderOpts.bgImageUrl);
-          if (!res.ok) {
-            throw new Error(
-              `Announcement graphic fetch failed: ${res.status} ${res.statusText}`
+          let buf: Buffer;
+          if (useStatic) {
+            buf = await renderStaticAnnouncement(
+              post.post_type,
+              payload as AnnouncementGraphicPayload
             );
+          } else {
+            const res = await fetch(renderOpts.bgImageUrl);
+            if (!res.ok) {
+              throw new Error(
+                `Announcement graphic fetch failed: ${res.status} ${res.statusText}`
+              );
+            }
+            const composedBuf = Buffer.from(await res.arrayBuffer());
+            buf = await sharp(composedBuf)
+              .resize(1080, 1350, {
+                fit: "contain",
+                position: "centre",
+                background: { r: 17, g: 17, b: 20, alpha: 1 },
+              })
+              .png()
+              .toBuffer();
           }
-          const composedBuf = Buffer.from(await res.arrayBuffer());
-          const feedBuf = await sharp(composedBuf)
-            .resize(1080, 1350, {
-              fit: "contain",
-              position: "centre",
-              background: { r: 17, g: 17, b: 20, alpha: 1 },
-            })
-            .png()
-            .toBuffer();
           const url = await uploadBuffer(
             `posts/${post.id}/0.png`,
-            feedBuf,
+            buf,
             "image/png"
           );
           assetUrls.push(url);

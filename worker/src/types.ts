@@ -5,6 +5,8 @@ export type ScheduledPostPayload = {
   league_id?: string
   /** When false, poller skips AI background generation for image post types. */
   generate_image?: boolean
+  /** When true, use branded static templates (Figma spec) instead of AI backgrounds. */
+  use_static_template?: boolean
   style_pack?: string
   style_version?: number
   ai_bg_prompt?: string

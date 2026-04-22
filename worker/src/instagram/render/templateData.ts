@@ -1,9 +1,18 @@
 import type {
+  AnnouncementGraphicPayload,
   BeatWriterMilestoneFlashPayload,
   FinalScorePayload,
   PlayerOfGamePayload,
   PowerRankingsPayload,
 } from "../util/validate.js";
+import {
+  postTypeToKind,
+  defaultHeadline,
+  secondaryLines,
+  ctaDisplayLabel,
+  normalizeVibe,
+  type AnnouncementPayload,
+} from "../../announcements/templates.js";
 
 export function injectData(html: string, data: Record<string, unknown>): string {
   let out = html;
@@ -155,5 +164,120 @@ export function powerRankingsSlideToTemplateData(
     change: team.change != null ? (team.change > 0 ? `+${team.change}` : String(team.change)) : "",
     team_logo: team.team_logo ?? "",
     league_logo: p.league_logo ?? "",
+  };
+}
+
+// --------------- Static template data mappers ---------------
+
+export function staticFinalScoreToTemplateData(
+  p: FinalScorePayload,
+  opts: { seasonLabel?: string; keyPerformerLine?: string } = {}
+): Record<string, unknown> {
+  return {
+    home_team: p.home_team.toUpperCase(),
+    away_team: p.away_team.toUpperCase(),
+    home_score: p.home_score,
+    away_score: p.away_score,
+    league_logo: p.league_logo ?? "",
+    pill_text: opts.seasonLabel ? `FINAL · ${opts.seasonLabel.toUpperCase()}` : "FINAL",
+    key_performer_line: opts.keyPerformerLine ?? "",
+  };
+}
+
+export function staticAnnouncementToTemplateData(
+  postType: string,
+  p: AnnouncementGraphicPayload
+): Record<string, unknown> {
+  const kind = postTypeToKind(postType);
+  const annoPayload: AnnouncementPayload = {
+    season: p.season,
+    cta: p.cta,
+    cta_label: p.cta_label,
+    vibe: normalizeVibe(p.vibe),
+  };
+
+  const headline = kind
+    ? defaultHeadline(kind, annoPayload)
+    : p.headline_override ?? "ANNOUNCEMENT";
+
+  const words = headline.split(/\s+/);
+  const lines: string[] = [];
+  for (let i = 0; i < words.length; i += 2) {
+    lines.push(words.slice(i, i + 2).join(" "));
+  }
+
+  const secondary = kind ? secondaryLines(kind, annoPayload) : [];
+  const ctaLabel = kind ? ctaDisplayLabel(kind, annoPayload) : "LEARN MORE";
+  const ctaRaw = (p.cta ?? "").trim();
+  let ctaHost = "";
+  try {
+    ctaHost = ctaRaw.includes("://") ? new URL(ctaRaw).host.toUpperCase() : ctaRaw.toUpperCase();
+  } catch {
+    ctaHost = ctaRaw.toUpperCase();
+  }
+
+  const season = p.season.replace(/^season\s*/i, "").trim();
+
+  return {
+    league_logo: p.league_logo ?? "",
+    eyebrow: `SEASON ${season.toUpperCase()} IS COMING`,
+    headline_1: lines[0] ?? "",
+    headline_2: lines[1] ?? "",
+    headline_3: lines[2] ?? "",
+    subline: secondary.join(" · "),
+    cta_text: ctaHost
+      ? `${ctaLabel.toUpperCase()} · ${ctaHost}`
+      : ctaLabel.toUpperCase(),
+  };
+}
+
+export function staticStandingsToTemplateData(
+  p: PowerRankingsPayload,
+  opts: { conferenceLabel?: string } = {}
+): Record<string, unknown> {
+  const maxRows = 6;
+  const teams = p.teams.slice(0, maxRows);
+  const rowsHtml = teams
+    .map(
+      (t, i) =>
+        `<div class="row">
+          <div class="rank-box">${t.rank ?? i + 1}</div>
+          <div class="team-name">${escapeHtml(t.team_name.toUpperCase())}</div>
+          <div class="record">${escapeHtml(t.record)}</div>
+        </div>`
+    )
+    .join("\n");
+
+  return {
+    league_logo: p.league_logo ?? "",
+    conference_label: opts.conferenceLabel ?? "STANDINGS",
+    season_week: p.week_label.toUpperCase(),
+    team_rows: rowsHtml,
+  };
+}
+
+export function staticStatLeaderToTemplateData(
+  p: PlayerOfGamePayload,
+  opts: { seasonLabel?: string } = {}
+): Record<string, unknown> {
+  const statParts = p.stat_line.split(/[\s/·]+/);
+  const bigNumber = statParts.find((s) => /^\d+(\.\d+)?$/.test(s)) ?? "";
+  const statCategory =
+    p.stat_line
+      .replace(bigNumber, "")
+      .replace(/[/·]/g, "")
+      .trim()
+      .toUpperCase() || "STAT LINE";
+
+  return {
+    league_logo: p.league_logo ?? "",
+    season_label: opts.seasonLabel
+      ? `STAT LEADER · ${opts.seasonLabel.toUpperCase()}`
+      : "STAT LEADER",
+    stat_category: statCategory,
+    big_number: bigNumber,
+    player_name: p.player_name.toUpperCase(),
+    team_name: p.team_name.toUpperCase(),
+    subline: "LEADS THE LBA",
   };
 }

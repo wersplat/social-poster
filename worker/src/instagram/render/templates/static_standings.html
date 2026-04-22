@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1350">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      width: 1080px; height: 1350px;
+      background: #3b2d5c;
+      color: #f5f2eb;
+      display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+    }
+    .scrim {
+      position: absolute; inset: 0;
+      background: #120c1e; opacity: 0.50;
+    }
+    .content {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      width: 100%; height: 100%;
+      padding: 40px 65px;
+    }
+    .header {
+      display: flex; align-items: flex-start; gap: 16px;
+      margin-bottom: 40px;
+    }
+    .logo { width: 100px; height: 120px; object-fit: contain; border-radius: 12px; }
+    .logo:not([src]), .logo[src=""] { display: none; }
+    .header-text { display: flex; flex-direction: column; justify-content: center; }
+    .header-title {
+      font-size: 44px; font-weight: 700; color: #f5f2eb;
+    }
+    .header-sub {
+      font-size: 22px; font-weight: 600; color: #9b8bb4;
+      letter-spacing: 1px; margin-top: 4px;
+    }
+    .rows { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .row {
+      display: flex; align-items: center;
+      width: 100%; height: 107px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 0 20px;
+    }
+    .rank-box {
+      width: 87px; height: 87px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 42px; font-weight: 700; color: #f5f2eb;
+      flex-shrink: 0;
+    }
+    .team-name {
+      flex: 1; margin-left: 24px;
+      font-size: 40px; font-weight: 700; color: #f5f2eb;
+    }
+    .record {
+      font-size: 34px; font-weight: 700; color: #9b8bb4;
+    }
+  </style>
+</head>
+<body>
+  <div class="scrim"></div>
+  <div class="content">
+    <div class="header">
+      <img class="logo" src="{{league_logo}}" alt="" onerror="this.style.display='none'">
+      <div class="header-text">
+        <div class="header-title">{{conference_label}}</div>
+        <div class="header-sub">{{season_week}}</div>
+      </div>
+    </div>
+    <div class="rows">
+      {{team_rows}}
+    </div>
+  </div>
+</body>
+</html>
