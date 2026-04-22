@@ -10,8 +10,13 @@ import { generateStaticCard } from './static-card-generator.js'
 import { resolvePostBody } from './templates.js'
 import type { ScheduledPost } from './types.js'
 
+function isXFinalScoreStaticDefault(post: ScheduledPost): boolean {
+  return post.post_type === 'final_score' && (post.publish_surface ?? []).includes('x')
+}
+
 function shouldGenerateAiBg(post: ScheduledPost): boolean {
   if (!isAiImagePostType(post.post_type)) return false
+  if (isXFinalScoreStaticDefault(post)) return false
   if (post.bg_image_url) return false
   if (post.payload_json.generate_image === false) return false
   return true
@@ -125,7 +130,10 @@ async function processPendingPosts() {
         }
       }
 
-      if (working.payload_json.use_static_template && !working.bg_image_url) {
+      const useStaticTemplate =
+        working.payload_json.use_static_template === true ||
+        isXFinalScoreStaticDefault(working)
+      if (useStaticTemplate && !working.bg_image_url) {
         try {
           const buf = await generateStaticCard(
             working.post_type,
