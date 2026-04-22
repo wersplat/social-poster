@@ -30,15 +30,35 @@ type MatchRow = {
   team_b: TeamRef
 }
 
+function isValidOpenTypeFont(buf: Buffer): boolean {
+  if (buf.length < 4) return false
+  const sfnt = buf.readUInt32BE(0)
+  if (sfnt === 0x00010000) return true // TrueType
+  const sig = buf.subarray(0, 4).toString('ascii')
+  return sig === 'OTTO' || sig === 'ttcf' || sig === 'true' || sig === 'typ1'
+}
+
 function loadFonts(): { name: string; data: Buffer; weight: 400 | 600 | 700; style: 'normal' }[] {
   const regular = join(__dirname, '../fonts/Inter-Regular.ttf')
   const semibold = join(__dirname, '../fonts/Inter-SemiBold.ttf')
   const bold = join(__dirname, '../fonts/Inter-Bold.ttf')
-  return [
+  const fonts: { name: string; data: Buffer; weight: 400 | 600 | 700; style: 'normal' }[] = [
     { name: 'Inter', data: readFileSync(regular), weight: 400, style: 'normal' },
-    { name: 'Inter', data: readFileSync(semibold), weight: 600, style: 'normal' },
     { name: 'Inter', data: readFileSync(bold), weight: 700, style: 'normal' },
   ]
+
+  try {
+    const semiboldBuf = readFileSync(semibold)
+    if (isValidOpenTypeFont(semiboldBuf)) {
+      fonts.push({ name: 'Inter', data: semiboldBuf, weight: 600, style: 'normal' })
+    } else {
+      console.warn('[card] Inter-SemiBold.ttf is not a valid OpenType font; continuing without weight 600')
+    }
+  } catch (e) {
+    console.warn('[card] Inter-SemiBold.ttf missing/unreadable; continuing without weight 600', e)
+  }
+
+  return fonts
 }
 
 let fontsCache: ReturnType<typeof loadFonts> | null = null
