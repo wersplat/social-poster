@@ -465,7 +465,8 @@ export async function fetchPostsToRender() {
     .order("scheduled_for", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as ScheduledPostRow[];
+  const rows = (data ?? []) as ScheduledPostRow[];
+  return rows.filter((r) => isInstagramScheduledRow(r.publish_surface));
 }
 
 // --- renderPosts: update after render ---
@@ -544,7 +545,8 @@ export async function fetchPostsToPublish() {
     .order("scheduled_for", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as ScheduledPostRow[];
+  const rows = (data ?? []) as ScheduledPostRow[];
+  return rows.filter((r) => isInstagramScheduledRow(r.publish_surface));
 }
 
 // --- publishPosts: set publishing (allows retry from "failed" for publish-one script) ---
