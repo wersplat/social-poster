@@ -2,7 +2,7 @@ import { logger } from "../util/logger.js";
 import type { LLMResponseResult, LLMUsage } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-4.1-mini-2025-04-14";
 const DEFAULT_TEMPERATURE = 0.6;
 const DEFAULT_MAX_OUTPUT_TOKENS = 500;
 const DEFAULT_TIMEOUT_MS = 30000;
